@@ -1,6 +1,6 @@
 export type Role = 'reseller' | 'referrer' | 'customer' | 'admin';
 export type OfferStatus = 'Pending approval' | 'Active' | 'Rejected' | 'Draft';
-export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string };
+export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string | undefined };
 export const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
 export const indianDate = (value: string) => new Date(value).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
 export function resellerQuote(base: number, selling: number) {
