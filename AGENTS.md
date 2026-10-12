@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep Socilet as a frontend-only, explicitly labelled sample prototype; demo role selection is not authentication or a security boundary.
+- Keep business rules and sample records in browser-safe library modules, with reusable screen components shared by individual TanStack content routes.
+- Keep prototype edits in React session state, never representing sample approvals, commissions, or payouts as live transactions.
