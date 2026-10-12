@@ -12,3 +12,4 @@
 - Keep Socilet as a frontend-only, explicitly labelled sample prototype; demo role selection is not authentication or a security boundary.
 - Keep business rules and sample records in browser-safe library modules, with reusable screen components shared by individual TanStack content routes.
 - Keep prototype edits in React session state, never representing sample approvals, commissions, or payouts as live transactions.
+- Present all routes in a shared compact app viewport with bottom navigation and an accessible menu on every screen size, so desktop preview preserves the mobile experience.
