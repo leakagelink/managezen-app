@@ -11,7 +11,9 @@ type Ctx = {
  user:User|null; signedIn:boolean; ready:boolean; ratesLive:boolean;
  addOffer:(o:NewOffer)=>Promise<string|null>; decideOffer:(id:string, approve:boolean, reason?:string)=>Promise<string|null>; signOut:()=>Promise<void>;
 };
-const Context = createContext<Ctx | null>(null);
+// Keep one context instance across hot reloads so provider and consumers never mismatch.
+const g = globalThis as unknown as { __sociletCtx?: React.Context<Ctx | null> };
+const Context = g.__sociletCtx ?? (g.__sociletCtx = createContext<Ctx | null>(null));
 const demoProfile:Profile = {legalName:'Rahul Sharma',country:'IN',phone:'9876543210',currency:'INR'};
 
 type OfferRow = { id:string; code:string; title:string; service:string; base:number; price:number; status:string; reason:string|null; created_at:string };
