@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resellerQuote, referralCommission, requiresAdvance, canAccess, publicProject } from './socilet';
+import { resellerQuote, referralCommission, requiresAdvance, canAccess, publicProject, demoRoles } from './socilet';
 describe('Socilet business rules',()=>{
  it('awards exactly 20% for eligible successful referrals',()=>expect(referralCommission(20000,true,true)).toBe(4000));
  it('does not award ineligible or unsuccessful commissions',()=>{expect(referralCommission(20000,false,true)).toBe(0);expect(referralCommission(20000,true,false)).toBe(0)});
@@ -16,4 +16,7 @@ describe('Country advance and currency rules',()=>{
  it('India: zero advance below ₹50,000',()=>{expect(adv(49999,'IN')).toBe(false);expect(adv(50000,'IN')).toBe(true)});
  it('Tier-1: zero advance below $1,000',()=>{expect(adv(82999,'US')).toBe(false);expect(adv(83000,'US')).toBe(true)});
  it('shows earnings in selected currency',()=>expect(formatMoney(8300,'USD')).toBe('$100.00'));
+});
+describe('Sample mode role options',()=>{
+ it('never offers admin as a selectable role',()=>{expect(demoRoles).toEqual(['reseller','referrer','customer']);expect(demoRoles.includes('admin')).toBe(false)});
 });
