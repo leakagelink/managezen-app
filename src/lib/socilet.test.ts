@@ -11,3 +11,9 @@ describe('Socilet business rules',()=>{
  it('limits role-specific demo views',()=>{expect(canAccess('customer','/admin')).toBe(false);expect(canAccess('reseller','/admin')).toBe(false);expect(canAccess('admin','/admin')).toBe(true);expect(canAccess('reseller','/referrals')).toBe(false);expect(canAccess('referrer','/offers')).toBe(false);expect(canAccess('customer','/projects')).toBe(true)});
  it('public tracking omits private customer and financial fields',()=>{const result=publicProject('SOC-2026-8X72K');expect(result).not.toBeNull();expect(Object.keys(result??{}).sort()).toEqual(['id','progress','service','stage','steps','updated']);expect(publicProject('unknown')).toBeNull()});
 });
+import { requiresAdvance as adv, formatMoney } from './socilet';
+describe('Country advance and currency rules',()=>{
+ it('India: zero advance below ₹50,000',()=>{expect(adv(49999,'IN')).toBe(false);expect(adv(50000,'IN')).toBe(true)});
+ it('Tier-1: zero advance below $1,000',()=>{expect(adv(82999,'US')).toBe(false);expect(adv(83000,'US')).toBe(true)});
+ it('shows earnings in selected currency',()=>expect(formatMoney(8300,'USD')).toBe('$100.00'));
+});
