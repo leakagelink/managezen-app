@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Keep Socilet as a frontend-only, explicitly labelled sample prototype; demo role selection is not authentication or a security boundary.
+- Accounts, profiles, roles and offers live in Lovable Cloud with RLS; roles sit in a separate user_roles table (admin granted only manually) because client-side roles are forgeable. Signed-out visitors get a labelled sample mode with a demo role switcher.
 - Keep business rules and sample records in browser-safe library modules, with reusable screen components shared by individual TanStack content routes.
-- Keep prototype edits in React session state, never representing sample approvals, commissions, or payouts as live transactions.
+- Payments, commissions and payouts stay simulated; never represent them as live transactions.
 - Present all routes in a shared compact app viewport with bottom navigation and an accessible menu on every screen size, so desktop preview preserves the mobile experience.
