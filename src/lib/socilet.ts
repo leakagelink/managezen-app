@@ -1,9 +1,19 @@
 export type Role = 'reseller' | 'referrer' | 'customer' | 'admin';
 export type OfferStatus = 'Pending approval' | 'Active' | 'Rejected' | 'Draft';
-export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string | undefined };
+export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string | undefined; dbId?: string };
 export type CurrencyCode = 'INR' | 'USD' | 'GBP' | 'EUR' | 'CAD' | 'AUD' | 'AED' | 'SGD';
 /** Sample conversion rates: 1 unit of currency = N rupees. Not live exchange rates. */
 export const inrPerUnit: Record<CurrencyCode, number> = { INR:1, USD:83, GBP:105, EUR:90, CAD:61, AUD:55, AED:22.6, SGD:62 };
+/** Fetches live INR-based rates; keeps sample rates if the request fails. */
+export async function applyLiveRates(): Promise<boolean> {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/INR');
+    if (!res.ok) return false;
+    const json = await res.json() as { rates?: Record<string, number> };
+    for (const c of Object.keys(inrPerUnit) as CurrencyCode[]) { const r = json.rates?.[c]; if (r && r > 0) inrPerUnit[c] = 1 / r; }
+    return true;
+  } catch { return false; }
+}
 export const currencies = Object.keys(inrPerUnit) as CurrencyCode[];
 export type Country = { code:string; name:string; dial:string; currency:CurrencyCode; tier1:boolean };
 export const countries: Country[] = [
