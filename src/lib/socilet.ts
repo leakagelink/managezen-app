@@ -1,7 +1,30 @@
 export type Role = 'reseller' | 'referrer' | 'customer' | 'admin';
 export type OfferStatus = 'Pending approval' | 'Active' | 'Rejected' | 'Draft';
 export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string | undefined };
-export const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
+export type CurrencyCode = 'INR' | 'USD' | 'GBP' | 'EUR' | 'CAD' | 'AUD' | 'AED' | 'SGD';
+/** Sample conversion rates: 1 unit of currency = N rupees. Not live exchange rates. */
+export const inrPerUnit: Record<CurrencyCode, number> = { INR:1, USD:83, GBP:105, EUR:90, CAD:61, AUD:55, AED:22.6, SGD:62 };
+export const currencies = Object.keys(inrPerUnit) as CurrencyCode[];
+export type Country = { code:string; name:string; dial:string; currency:CurrencyCode; tier1:boolean };
+export const countries: Country[] = [
+ { code:'IN', name:'India', dial:'+91', currency:'INR', tier1:false },
+ { code:'US', name:'United States', dial:'+1', currency:'USD', tier1:true },
+ { code:'GB', name:'United Kingdom', dial:'+44', currency:'GBP', tier1:true },
+ { code:'CA', name:'Canada', dial:'+1', currency:'CAD', tier1:true },
+ { code:'AU', name:'Australia', dial:'+61', currency:'AUD', tier1:true },
+ { code:'DE', name:'Germany', dial:'+49', currency:'EUR', tier1:true },
+ { code:'FR', name:'France', dial:'+33', currency:'EUR', tier1:true },
+ { code:'SG', name:'Singapore', dial:'+65', currency:'SGD', tier1:true },
+ { code:'AE', name:'United Arab Emirates', dial:'+971', currency:'AED', tier1:false },
+];
+export const countryByCode = (code: string) => countries.find(c => c.code === code) ?? countries[0]!;
+export const convertFromInr = (inr: number, currency: CurrencyCode) => inr / inrPerUnit[currency];
+export const formatMoney = (inr: number, currency: CurrencyCode) => new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style:'currency', currency, maximumFractionDigits: currency === 'INR' ? 0 : 2 }).format(convertFromInr(inr, currency));
+let displayCurrency: CurrencyCode = 'INR';
+export const setDisplayCurrency = (c: CurrencyCode) => { displayCurrency = c; };
+/** Amounts are stored in INR and shown in the partner's selected currency. */
+export const money = (value: number) => formatMoney(value, displayCurrency);
+export const validPhone = (phone: string) => /^\d{7,15}$/.test(phone.replace(/[\s-]/g, ''));
 export const indianDate = (value: string) => new Date(value).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
 export function resellerQuote(base: number, selling: number) {
   if (!Number.isFinite(base) || !Number.isFinite(selling) || base <= 0 || selling <= base) return { valid:false, profit:0, margin:0, commission:0 };
@@ -10,7 +33,9 @@ export function resellerQuote(base: number, selling: number) {
 export function referralCommission(fee: number, eligible: boolean, successful: boolean, resellerTransaction = false) {
   return eligible && successful && !resellerTransaction && Number.isFinite(fee) && fee > 0 ? fee * .2 : 0;
 }
-export const requiresAdvance = (projectTotal: number) => projectTotal >= 50000;
+/** India (and other non tier-1): zero advance below ₹50,000. Tier-1 countries: zero advance below $1,000. Amount in INR. */
+export const requiresAdvance = (projectTotalInr: number, countryCode = 'IN') => countryByCode(countryCode).tier1 ? convertFromInr(projectTotalInr, 'USD') >= 1000 : projectTotalInr >= 50000;
+export const advanceThresholdLabel = (countryCode = 'IN') => countryByCode(countryCode).tier1 ? '$1,000' : '₹50,000';
 export const canAccess = (role: Role, page: string) => {
   if (['/','/services','/track','/profile','/welcome','/login'].includes(page)) return true;
   if (page === '/admin') return role === 'admin';
