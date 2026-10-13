@@ -1,4 +1,6 @@
 export type Role = 'reseller' | 'referrer' | 'customer' | 'admin';
+/** Roles a visitor can pick in sample mode. Admin is granted in the database, never selected here. */
+export const demoRoles: Role[] = ['reseller','referrer','customer'];
 export type OfferStatus = 'Pending approval' | 'Active' | 'Rejected' | 'Draft';
 export type Offer = { id: string; title: string; service: string; base: number; price: number; status: OfferStatus; date: string; reason?: string | undefined; dbId?: string };
 export type CurrencyCode = 'INR' | 'USD' | 'GBP' | 'EUR' | 'CAD' | 'AUD' | 'AED' | 'SGD';
