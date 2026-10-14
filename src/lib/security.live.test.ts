@@ -4,9 +4,10 @@ import type { Database } from '@/integrations/supabase/types';
 import { runAccountDeletion, type DeletionClient } from './accountDeletion';
 
 // Runs against the real backend with throwaway test accounts. Skipped when no service key is available.
-const URL_ = 'https://xzuhikowfjopzdlibamd.supabase.co';
-const PUB = 'sb_publishable_eiNGrrHZ2_IxHEqaa9qsJw_fEpaJinv';
-const SVC = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+const URL_ = process.env['TEST_SUPABASE_URL'] ?? 'https://xzuhikowfjopzdlibamd.supabase.co';
+const PUB = process.env['TEST_SUPABASE_PUBLISHABLE_KEY'] ?? 'sb_publishable_eiNGrrHZ2_IxHEqaa9qsJw_fEpaJinv';
+// Opt-in only: set LIVE_DB_TESTS=1 (point TEST_SUPABASE_URL/KEYS at staging once it exists) so routine runs never write to production.
+const SVC = process.env['LIVE_DB_TESTS'] === '1' ? (process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_SERVICE_ROLE_KEY']) : undefined;
 const d = SVC ? describe : describe.skip;
 const svc = () => createClient<Database>(URL_, SVC!, { auth: { persistSession: false } });
 const pwd = 'Test-' + Math.random().toString(36).slice(2) + 'A1!';
