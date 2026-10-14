@@ -134,7 +134,7 @@ function RequestForm({ code, price }: { code: string; price: number }) {
       <label htmlFor="req-files" className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed p-3 text-xs font-medium text-muted-foreground">
         <Paperclip className="size-4"/> Attach logo, images or files (optional, max 5 · 10 MB each)
       </label>
-      <input id="req-files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.zip" className="hidden" onChange={e=>{pickFiles(e.target.files); e.target.value='';}}/>
+      <input id="req-files" type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={e=>{pickFiles(e.target.files); e.target.value='';}}/>
       {files.length > 0 && <ul className="mt-2 space-y-1">{files.map((file, i) => <li key={`${file.name}-${i}`} className="flex items-center justify-between rounded bg-muted px-2 py-1 text-[11px]"><span className="truncate">{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={()=>setFiles(files.filter((_,j)=>j!==i))} className="ml-2 text-destructive"><X className="size-3.5"/></button></li>)}</ul>}
     </div>
     {err && <p role="alert" className="text-xs text-destructive">{err}</p>}
