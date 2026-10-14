@@ -4,9 +4,10 @@ import type { Database } from '@/integrations/supabase/types';
 import { runAccountDeletion, type DeletionClient } from './accountDeletion';
 
 // Runs against the real backend with throwaway test accounts. Skipped when no service key is available.
-const URL_ = 'https://xzuhikowfjopzdlibamd.supabase.co';
-const PUB = 'sb_publishable_eiNGrrHZ2_IxHEqaa9qsJw_fEpaJinv';
-const SVC = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+const URL_ = process.env['TEST_SUPABASE_URL'] ?? 'https://xzuhikowfjopzdlibamd.supabase.co';
+const PUB = process.env['TEST_SUPABASE_PUBLISHABLE_KEY'] ?? 'sb_publishable_eiNGrrHZ2_IxHEqaa9qsJw_fEpaJinv';
+// Opt-in only: set LIVE_DB_TESTS=1 (point TEST_SUPABASE_URL/KEYS at staging once it exists) so routine runs never write to production.
+const SVC = process.env['LIVE_DB_TESTS'] === '1' ? (process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_SERVICE_ROLE_KEY']) : undefined;
 const d = SVC ? describe : describe.skip;
 const svc = () => createClient<Database>(URL_, SVC!, { auth: { persistSession: false } });
 const pwd = 'Test-' + Math.random().toString(36).slice(2) + 'A1!';
@@ -21,6 +22,46 @@ async function mkUser(sb: DeletionClient, tag: string) {
   return { id: data.user.id, email, client: c };
 }
 
+async function mkAdmin(sb: DeletionClient) {
+  const u = await mkUser(sb, 'adm');
+  const r = await sb.from('user_roles').insert({ user_id: u.id, role: 'admin' });
+  if (r.error) throw r.error;
+  return u;
+}
+
+d('audit attribution', () => {
+  const sb = svc();
+  it('records the signed-in admin id for referral and deletion decisions, and fails closed without one', async () => {
+    const adm = await mkAdmin(sb);
+    const usr = await mkUser(sb, 'ref');
+    const { data: ref } = await usr.client.from('referrals').insert({ user_id: usr.id, client_name: 'A', service: 'Business website', fee: 1000 }).select('id').single();
+    // service role with no verified actor cannot decide
+    expect((await sb.from('referrals').update({ status: 'Approved' }).eq('id', ref!.id)).error).not.toBeNull();
+    // ordinary user cannot decide
+    expect((await usr.client.from('referrals').update({ status: 'Approved' }).eq('id', ref!.id).select('id')).data ?? []).toHaveLength(0);
+    expect((await adm.client.from('referrals').update({ status: 'Approved' }).eq('id', ref!.id)).error).toBeNull();
+    const log = await sb.from('audit_log').select('actor_id,actor_kind').eq('record_id', ref!.id);
+    expect(log.data).toEqual([{ actor_id: adm.id, actor_kind: 'admin' }]);
+    // admin can read audit log; user cannot write it
+    expect(((await adm.client.from('audit_log').select('id').eq('record_id', ref!.id)).data ?? []).length).toBe(1);
+    expect((await usr.client.from('audit_log').insert({ table_name: 'x', record_id: ref!.id })).error).not.toBeNull();
+
+    const dr = await sb.from('deletion_requests').insert({ email: 'attr@example.com', email_hash: 't' }).select('id').single();
+    const id = dr.data!.id;
+    // forged actor (non-admin) is refused
+    expect((await sb.rpc('svc_update_deletion_request', { _id: id, _actor: usr.id, _actor_kind: 'admin', _from: ['Received'], _patch: { status: 'Verification Pending' } })).error).not.toBeNull();
+    // requester kind cannot jump to Verified from Received
+    expect((await sb.rpc('svc_update_deletion_request', { _id: id, _actor: null as unknown as string, _actor_kind: 'requester', _from: ['Received'], _patch: { status: 'Verified' } })).error).not.toBeNull();
+    expect((await sb.rpc('svc_update_deletion_request', { _id: id, _actor: adm.id, _actor_kind: 'admin', _from: ['Received'], _patch: { status: 'Verification Pending' } })).error).toBeNull();
+    expect((await sb.rpc('svc_update_deletion_request', { _id: id, _actor: null as unknown as string, _actor_kind: 'requester', _from: ['Verification Pending'], _patch: { status: 'Verified' } })).error).toBeNull();
+    const dlog = await sb.from('audit_log').select('actor_id,actor_kind,new_status').eq('record_id', id).order('created_at');
+    expect(dlog.data).toEqual([{ actor_id: adm.id, actor_kind: 'admin', new_status: 'Verification Pending' }, { actor_id: null, actor_kind: 'requester', new_status: 'Verified' }]);
+    await adm.client.from('deletion_requests').update({ status: 'Rejected' }).eq('id', id);
+    await adm.client.from('referrals').update({ status: 'Rejected' }).eq('id', ref!.id);
+    for (const u of [adm, usr]) await sb.auth.admin.deleteUser(u.id);
+  }, 60000);
+});
+
 d('live security (test accounts)', () => {
   const sb = svc();
   let a: Awaited<ReturnType<typeof mkUser>>;
@@ -31,7 +72,9 @@ d('live security (test accounts)', () => {
     reqId = r.data!.id;
   }, 30000);
   afterAll(async () => {
-    await sb.from('deletion_requests').update({ status: 'Rejected' }).eq('id', reqId);
+    const adm = await mkAdmin(sb);
+    await adm.client.from('deletion_requests').update({ status: 'Rejected' }).eq('id', reqId);
+    await sb.auth.admin.deleteUser(adm.id);
     await sb.auth.admin.deleteUser(a.id).catch(() => {});
   });
 
@@ -66,8 +109,9 @@ d('account deletion job', () => {
     const u = await mkUser(sb, 'del');
     await sb.from('notifications').insert({ user_id: u.id, title: 't' });
     const { data: ref } = await sb.from('referrals').insert({ user_id: u.id, client_name: 'Client', service: 'Business website', fee: 1000 }).select('id').single();
-    await sb.from('referrals').update({ status: 'Approved' }).eq('id', ref!.id);
-    await sb.from('referrals').update({ status: 'Completed' }).eq('id', ref!.id);
+    const adm = await mkAdmin(sb);
+    await adm.client.from('referrals').update({ status: 'Approved' }).eq('id', ref!.id);
+    await adm.client.from('referrals').update({ status: 'Completed' }).eq('id', ref!.id);
     const path = `SOC-2099-TEST${Math.floor(Math.random() * 9)}/test.txt`;
     await sb.storage.from('project-files').upload(path, new Blob(['x'], { type: 'text/plain' }));
 
@@ -97,6 +141,7 @@ d('account deletion job', () => {
     expect((await sb.from('profiles').select('id').eq('id', u.id)).data).toHaveLength(0);
     const kept = await sb.from('referrals').select('client_name,status').eq('id', ref!.id).single();
     expect(kept.data).toEqual({ client_name: 'Deleted', status: 'Completed' });
+    await sb.auth.admin.deleteUser(adm.id);
     const files = await sb.storage.from('project-files').list(path.split('/')[0]);
     expect(files.data ?? []).toHaveLength(0);
     expect((await sb.from('project_requests').select('id').eq('client_email', u.email)).data).toHaveLength(0);
