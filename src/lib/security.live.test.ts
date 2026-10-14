@@ -140,6 +140,7 @@ d('account deletion job', () => {
     expect((await sb.from('profiles').select('id').eq('id', u.id)).data).toHaveLength(0);
     const kept = await sb.from('referrals').select('client_name,status').eq('id', ref!.id).single();
     expect(kept.data).toEqual({ client_name: 'Deleted', status: 'Completed' });
+    await sb.auth.admin.deleteUser(adm.id);
     const files = await sb.storage.from('project-files').list(path.split('/')[0]);
     expect(files.data ?? []).toHaveLength(0);
     expect((await sb.from('project_requests').select('id').eq('client_email', u.email)).data).toHaveLength(0);
