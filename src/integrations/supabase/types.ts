@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_jobs: {
+        Row: {
+          last_error: string | null
+          started_at: string
+          status: string
+          step: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_error?: string | null
+          started_at?: string
+          status?: string
+          step?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_error?: string | null
+          started_at?: string
+          status?: string
+          step?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           actor_id: string | null
@@ -46,25 +73,46 @@ export type Database = {
       }
       deletion_requests: {
         Row: {
+          completed_at: string | null
           created_at: string
           email: string
+          email_hash: string | null
           id: string
           reason: string
+          request_no: string | null
           status: string
+          updated_at: string
+          verified_at: string | null
+          verify_expires_at: string | null
+          verify_hash: string | null
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           email: string
+          email_hash?: string | null
           id?: string
           reason?: string
+          request_no?: string | null
           status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verify_expires_at?: string | null
+          verify_hash?: string | null
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           email?: string
+          email_hash?: string | null
           id?: string
           reason?: string
+          request_no?: string | null
           status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verify_expires_at?: string | null
+          verify_hash?: string | null
         }
         Relationships: []
       }
@@ -210,6 +258,10 @@ export type Database = {
           status: string
           total: number
           tracking_code: string
+          upload_attempts: number
+          upload_claim: string | null
+          upload_claimed_at: string | null
+          upload_state: string
           upload_token: string
         }
         Insert: {
@@ -227,6 +279,10 @@ export type Database = {
           status?: string
           total?: number
           tracking_code?: string
+          upload_attempts?: number
+          upload_claim?: string | null
+          upload_claimed_at?: string | null
+          upload_state?: string
           upload_token?: string
         }
         Update: {
@@ -244,6 +300,10 @@ export type Database = {
           status?: string
           total?: number
           tracking_code?: string
+          upload_attempts?: number
+          upload_claim?: string | null
+          upload_claimed_at?: string | null
+          upload_state?: string
           upload_token?: string
         }
         Relationships: []
@@ -287,6 +347,27 @@ export type Database = {
           total?: number
           tracking_code?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          bucket: string
+          created_at: string
+          id: string
+          key_hash: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          id?: string
+          key_hash: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          id?: string
+          key_hash?: string
         }
         Relationships: []
       }
@@ -351,6 +432,12 @@ export type Database = {
         Returns: undefined
       }
       available_payout: { Args: { _user: string }; Returns: number }
+      claim_deletion_job: { Args: { _user: string }; Returns: boolean }
+      claim_request_upload: {
+        Args: { _token: string; _tracking: string }
+        Returns: string
+      }
+      find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_public_offer: {
         Args: { _code: string }
         Returns: {
@@ -369,6 +456,7 @@ export type Database = {
         Returns: boolean
       }
       my_available_payout: { Args: never; Returns: number }
+      purge_expired_records: { Args: never; Returns: undefined }
       request_account_deletion: {
         Args: { _email: string; _reason: string }
         Returns: string
