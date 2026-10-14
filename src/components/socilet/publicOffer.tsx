@@ -93,7 +93,15 @@ function RequestForm({ code, price }: { code: string; price: number }) {
     if (f.req.trim().length < 10) return setErr('Please describe your project requirements (at least 10 characters).');
     setBusy(true);
     const { data, error } = await supabase.rpc('submit_project_request', { _offer_code: code, _name: f.name.slice(0,100), _email: f.email.trim().slice(0,255), _phone: f.phone.slice(0,20), _country: f.country, _requirements: f.req.slice(0,2000) });
-    if (error || !data) { setBusy(false); return setErr(code.startsWith('OFF-') ? 'Could not submit right now. Please try again.' : 'This is a sample offer — requests can be submitted only on live offers.'); }
+    if (error || !data) {
+      setBusy(false);
+      const m = error?.message || '';
+      if (m.includes('Offer not available')) return setErr('This offer is not live yet. It must be approved by Socilet admin before clients can submit requests.');
+      if (m.includes('Invalid email')) return setErr('Please enter a valid email address.');
+      if (m.includes('Invalid name')) return setErr('Please enter your full name (at least 2 letters).');
+      if (m.includes('Invalid input')) return setErr('Please check your phone number and requirements length.');
+      return setErr('Could not submit right now. Please try again.');
+    }
     const tracking = String(data);
     if (files.length) {
       const paths: string[] = [];
