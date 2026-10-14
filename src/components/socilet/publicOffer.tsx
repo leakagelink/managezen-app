@@ -78,7 +78,14 @@ export function PublicOffer() {
 
 function RequestForm({ code, price }: { code: string; price: number }) {
   const [f, setF] = useState({ name: '', email: '', phone: '', country: 'IN', req: '' });
+  const [files, setFiles] = useState<File[]>([]);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [done, setDone] = useState('');
+  function pickFiles(list: FileList | null) {
+    if (!list) return;
+    const next = [...files, ...Array.from(list)].slice(0, 5);
+    if (next.some(x => x.size > 10 * 1024 * 1024)) return setErr('Each file must be under 10 MB.');
+    setErr(''); setFiles(next);
+  }
   async function submit(e: FormEvent) {
     e.preventDefault(); setErr('');
     if (f.name.trim().length < 2) return setErr('Please enter your name.');
@@ -86,9 +93,20 @@ function RequestForm({ code, price }: { code: string; price: number }) {
     if (f.req.trim().length < 10) return setErr('Please describe your project requirements (at least 10 characters).');
     setBusy(true);
     const { data, error } = await supabase.rpc('submit_project_request', { _offer_code: code, _name: f.name.slice(0,100), _email: f.email.trim().slice(0,255), _phone: f.phone.slice(0,20), _country: f.country, _requirements: f.req.slice(0,2000) });
+    if (error || !data) { setBusy(false); return setErr(code.startsWith('OFF-') ? 'Could not submit right now. Please try again.' : 'This is a sample offer — requests can be submitted only on live offers.'); }
+    const tracking = String(data);
+    if (files.length) {
+      const paths: string[] = [];
+      for (const file of files) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-60);
+        const path = `${tracking}/${Date.now()}-${safe}`;
+        const { error: upErr } = await supabase.storage.from('project-files').upload(path, file, { contentType: file.type || 'application/octet-stream' });
+        if (!upErr) paths.push(path);
+      }
+      if (paths.length) await supabase.rpc('attach_request_files', { _tracking_code: tracking, _paths: paths });
+    }
     setBusy(false);
-    if (error || !data) return setErr(code.startsWith('OFF-') ? 'Could not submit right now. Please try again.' : 'This is a sample offer — requests can be submitted only on live offers.');
-    setDone(String(data));
+    setDone(tracking);
   }
   if (done) return <section className="panel p-5 text-center">
     <Check className="mx-auto size-8 text-success"/>
