@@ -1,3 +1,6 @@
+export const SUPPORT_EMAIL = 'hello@socilet.in';
+export const SITE_URL = 'https://affiliate.socilet.in';
+export const APP_NAME = 'Socilet Affiliate';
 export type Role = 'reseller' | 'referrer' | 'customer' | 'admin';
 /** Roles a visitor can pick in sample mode. Admin is granted in the database, never selected here. */
 export const demoRoles: Role[] = ['reseller','referrer','customer'];
