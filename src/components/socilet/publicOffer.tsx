@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { ArrowRight, Check, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { useSocilet } from './context';
 import { Status, Note, ServiceArt } from './shared';
 import { money, services, servicePromises, serviceExclusions, SUPPORT_EMAIL, requiresAdvance, advanceThresholdLabel } from '@/lib/socilet';
