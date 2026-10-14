@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_status: string | null
+          old_status: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      deletion_requests: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          reason: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          reason?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          reason?: string
+          status?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
@@ -148,6 +202,7 @@ export type Database = {
           client_phone: string
           country: string
           created_at: string
+          files_attached: boolean
           id: string
           offer_code: string
           requirements: string
@@ -155,6 +210,7 @@ export type Database = {
           status: string
           total: number
           tracking_code: string
+          upload_token: string
         }
         Insert: {
           attachments?: Json
@@ -163,6 +219,7 @@ export type Database = {
           client_phone?: string
           country?: string
           created_at?: string
+          files_attached?: boolean
           id?: string
           offer_code?: string
           requirements?: string
@@ -170,6 +227,7 @@ export type Database = {
           status?: string
           total?: number
           tracking_code?: string
+          upload_token?: string
         }
         Update: {
           attachments?: Json
@@ -178,6 +236,7 @@ export type Database = {
           client_phone?: string
           country?: string
           created_at?: string
+          files_attached?: boolean
           id?: string
           offer_code?: string
           requirements?: string
@@ -185,6 +244,7 @@ export type Database = {
           status?: string
           total?: number
           tracking_code?: string
+          upload_token?: string
         }
         Relationships: []
       }
@@ -290,6 +350,7 @@ export type Database = {
         Args: { _paths: string[]; _tracking_code: string }
         Returns: undefined
       }
+      available_payout: { Args: { _user: string }; Returns: number }
       get_public_offer: {
         Args: { _code: string }
         Returns: {
@@ -307,6 +368,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      my_available_payout: { Args: never; Returns: number }
+      request_account_deletion: {
+        Args: { _email: string; _reason: string }
+        Returns: string
+      }
       submit_project_request: {
         Args: {
           _country: string
@@ -317,6 +383,20 @@ export type Database = {
           _requirements: string
         }
         Returns: string
+      }
+      submit_project_request_v2: {
+        Args: {
+          _country: string
+          _email: string
+          _name: string
+          _offer_code: string
+          _phone: string
+          _requirements: string
+        }
+        Returns: {
+          tracking_code: string
+          upload_token: string
+        }[]
       }
       track_project: {
         Args: { _code: string }
