@@ -50,6 +50,13 @@
       "when": 1791974815465,
       "tag": "0006_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791975556072,
+      "tag": "0007_deletion_workflow_upload_claims",
+      "breakpoints": true
     }
   ]
 }
