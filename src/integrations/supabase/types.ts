@@ -44,6 +44,7 @@ export type Database = {
       audit_log: {
         Row: {
           actor_id: string | null
+          actor_kind: string | null
           created_at: string
           id: string
           new_status: string | null
@@ -53,6 +54,7 @@ export type Database = {
         }
         Insert: {
           actor_id?: string | null
+          actor_kind?: string | null
           created_at?: string
           id?: string
           new_status?: string | null
@@ -62,6 +64,7 @@ export type Database = {
         }
         Update: {
           actor_id?: string | null
+          actor_kind?: string | null
           created_at?: string
           id?: string
           new_status?: string | null
@@ -431,6 +434,7 @@ export type Database = {
         Args: { _paths: string[]; _tracking_code: string }
         Returns: undefined
       }
+      audit_actor: { Args: never; Returns: string }
       available_payout: { Args: { _user: string }; Returns: number }
       claim_deletion_job: { Args: { _user: string }; Returns: boolean }
       claim_request_upload: {
@@ -485,6 +489,35 @@ export type Database = {
           tracking_code: string
           upload_token: string
         }[]
+      }
+      svc_update_deletion_request: {
+        Args: {
+          _actor: string
+          _actor_kind: string
+          _from: string[]
+          _id: string
+          _patch: Json
+        }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          email: string
+          email_hash: string | null
+          id: string
+          reason: string
+          request_no: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verify_expires_at: string | null
+          verify_hash: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "deletion_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       track_project: {
         Args: { _code: string }

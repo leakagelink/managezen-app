@@ -57,6 +57,13 @@
       "when": 1791975556072,
       "tag": "0007_deletion_workflow_upload_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791976612524,
+      "tag": "0008_audit_actor_attribution",
+      "breakpoints": true
     }
   ]
 }
