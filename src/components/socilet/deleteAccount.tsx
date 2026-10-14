@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Trash2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { PageHeading, Note } from './shared';
 import { useSocilet } from './context';
 import { supabase } from '@/integrations/supabase/client';
-import { deleteMyAccount } from '@/lib/security.functions';
+import { deleteMyAccount, requestDeletion, verifyDeletion } from '@/lib/security.functions';
 import { SUPPORT_EMAIL } from '@/lib/socilet';
 
 export function DeleteAccount() {
@@ -18,6 +18,15 @@ export function DeleteAccount() {
   const [err, setErr] = useState('');
   const [done, setDone] = useState('');
 
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search); const r = q.get('r'); const t = q.get('t');
+    if (!r || !t) return;
+    setBusy(true);
+    verifyDeletion({ data: { id: r, token: t } })
+      .then(() => setDone('Thank you — your email is verified. Socilet will now delete the account and confirm by email.'))
+      .catch(e => setErr(e instanceof Error ? e.message : 'Invalid or expired link.'))
+      .finally(() => setBusy(false));
+  }, []);
   async function removeNow() {
     setErr(''); setBusy(true);
     try {
@@ -31,10 +40,11 @@ export function DeleteAccount() {
     e.preventDefault(); setErr('');
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setErr('Enter the email you registered with.');
     setBusy(true);
-    const { data, error } = await supabase.rpc('request_account_deletion', { _email: email.trim(), _reason: reason.slice(0, 500) });
+    try {
+      const r = await requestDeletion({ data: { email: email.trim(), reason } });
+      setDone(`${r.message} The email will come from ${SUPPORT_EMAIL} with a verification link valid for 48 hours. Deletion is completed within 30 days of verification.`);
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not submit the request. Please try again.'); }
     setBusy(false);
-    if (error) return setErr(error.message.includes('Too many') ? 'Too many requests today. Please try tomorrow.' : 'Could not submit the request. Please try again.');
-    setDone(`Request ${data} received. We will email ${email.trim()} from ${SUPPORT_EMAIL} to verify ownership, then delete the account within 30 days.`);
   }
 
   return <div className="screen-enter">
