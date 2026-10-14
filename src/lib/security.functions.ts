@@ -37,7 +37,7 @@ export const uploadRequestFiles = createServerFn({ method: 'POST' })
 /**
  * Deletes the signed-in user's own account. Dependency plan:
  * notifications, profile, offers, pending/rejected referrals and payouts are deleted;
- * completed referrals and approved payouts are kept with personal links removed (financial records);
+ * completed referrals and approved payouts are kept (client name removed) (financial records);
  * projects/requests under the user's email are anonymised and their files removed; finally the login is deleted.
  */
 export const deleteMyAccount = createServerFn({ method: 'POST' })
@@ -56,16 +56,12 @@ export const deleteMyAccount = createServerFn({ method: 'POST' })
 
     const steps: Array<PromiseLike<{ error: unknown }>> = [
       supabaseAdmin.from('notifications').delete().eq('user_id', uid),
-      supabaseAdmin.from('offers').delete().eq('user_id', uid).neq('status', 'Active'),
+      supabaseAdmin.from('offers').delete().eq('user_id', uid),
       supabaseAdmin.from('referrals').delete().eq('user_id', uid).in('status', ['Pending', 'Rejected', 'Approved']),
       supabaseAdmin.from('payout_requests').delete().eq('user_id', uid).in('status', ['Pending', 'Rejected']),
       supabaseAdmin.from('referrals').update({ client_name: 'Deleted', client_contact: '' }).eq('user_id', uid),
-      supabaseAdmin.from('payout_requests').update({ details: '' } as never).eq('user_id', uid),
     ];
     for (const s of steps) await s;
-    // Active offers are retired (status change is allowed by the server rules) then removed.
-    await supabaseAdmin.from('offers').update({ status: 'Rejected', reason: 'Account deleted' }).eq('user_id', uid).eq('status', 'Active');
-    await supabaseAdmin.from('offers').delete().eq('user_id', uid);
 
     if (email) {
       const { data: reqs } = await supabaseAdmin.from('project_requests').select('id,attachments').eq('client_email', email);
