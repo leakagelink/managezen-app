@@ -11,8 +11,21 @@ import { money, services, servicePromises, serviceExclusions, SUPPORT_EMAIL, req
 export function PublicOffer() {
   const { offerId } = useParams({ from: '/offer/$offerId' });
   const { offers } = useSocilet();
-  const offer = offers.find(o => o.id.toLowerCase() === offerId.toLowerCase());
+  const local = offers.find(o => o.id.toLowerCase() === offerId.toLowerCase());
+  const [remote, setRemote] = useState<{ id: string; title: string; service: string; price: number; status: 'Active' } | null | 'loading'>('loading');
+  useEffect(() => {
+    let on = true;
+    supabase.rpc('get_public_offer', { _code: offerId }).then(({ data }) => {
+      if (!on) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      setRemote(row ? { id: row.code, title: row.title, service: row.service, price: Number(row.price), status: 'Active' } : null);
+    });
+    return () => { on = false; };
+  }, [offerId]);
+  const offer = local ?? (remote === 'loading' ? undefined : remote);
   const service = offer ? services.find(s => s.name === offer.service) : undefined;
+
+  if (offer === undefined) return <div className="screen-enter py-16 text-center text-xs text-muted-foreground">Loading offer…</div>;
 
   if (!offer) {
     return <div className="screen-enter py-16 text-center">
