@@ -142,6 +142,7 @@ export type Database = {
       }
       project_requests: {
         Row: {
+          attachments: Json
           client_email: string
           client_name: string
           client_phone: string
@@ -156,6 +157,7 @@ export type Database = {
           tracking_code: string
         }
         Insert: {
+          attachments?: Json
           client_email: string
           client_name: string
           client_phone?: string
@@ -170,6 +172,7 @@ export type Database = {
           tracking_code?: string
         }
         Update: {
+          attachments?: Json
           client_email?: string
           client_name?: string
           client_phone?: string
@@ -283,6 +286,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attach_request_files: {
+        Args: { _paths: string[]; _tracking_code: string }
+        Returns: undefined
+      }
       get_public_offer: {
         Args: { _code: string }
         Returns: {
