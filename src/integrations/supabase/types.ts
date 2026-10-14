@@ -140,8 +140,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_requests: {
+        Row: {
+          client_email: string
+          client_name: string
+          client_phone: string
+          country: string
+          created_at: string
+          id: string
+          offer_code: string
+          requirements: string
+          service: string
+          status: string
+          total: number
+          tracking_code: string
+        }
+        Insert: {
+          client_email: string
+          client_name: string
+          client_phone?: string
+          country?: string
+          created_at?: string
+          id?: string
+          offer_code?: string
+          requirements?: string
+          service: string
+          status?: string
+          total?: number
+          tracking_code?: string
+        }
+        Update: {
+          client_email?: string
+          client_name?: string
+          client_phone?: string
+          country?: string
+          created_at?: string
+          id?: string
+          offer_code?: string
+          requirements?: string
+          service?: string
+          status?: string
+          total?: number
+          tracking_code?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
+          country: string
           created_at: string
           customer_email: string
           customer_id: string | null
@@ -154,6 +200,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          country?: string
           created_at?: string
           customer_email?: string
           customer_id?: string | null
@@ -166,6 +213,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          country?: string
           created_at?: string
           customer_email?: string
           customer_id?: string | null
@@ -252,9 +300,31 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_project_request: {
+        Args: {
+          _country: string
+          _email: string
+          _name: string
+          _offer_code: string
+          _phone: string
+          _requirements: string
+        }
+        Returns: string
+      }
       track_project: {
         Args: { _code: string }
         Returns: {
+          progress: number
+          service: string
+          stage: string
+          tracking_code: string
+          updated_at: string
+        }[]
+      }
+      track_request: {
+        Args: { _code: string }
+        Returns: {
+          country: string
           progress: number
           service: string
           stage: string
