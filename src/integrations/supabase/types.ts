@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           base: number
@@ -53,6 +80,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          details: string
+          id: string
+          method: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          details?: string
+          id?: string
+          method?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          details?: string
+          id?: string
+          method?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string
@@ -80,6 +137,78 @@ export type Database = {
           legal_name?: string
           phone?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_id: string | null
+          id: string
+          progress: number
+          service: string
+          stage: string
+          total: number
+          tracking_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string
+          customer_id?: string | null
+          id?: string
+          progress?: number
+          service: string
+          stage?: string
+          total?: number
+          tracking_code?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_id?: string | null
+          id?: string
+          progress?: number
+          service?: string
+          stage?: string
+          total?: number
+          tracking_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          client_contact: string
+          client_name: string
+          created_at: string
+          fee: number
+          id: string
+          service: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          client_contact?: string
+          client_name: string
+          created_at?: string
+          fee?: number
+          id?: string
+          service: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          client_contact?: string
+          client_name?: string
+          created_at?: string
+          fee?: number
+          id?: string
+          service?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -112,6 +241,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      track_project: {
+        Args: { _code: string }
+        Returns: {
+          progress: number
+          service: string
+          stage: string
+          tracking_code: string
+          updated_at: string
+        }[]
       }
     }
     Enums: {

@@ -15,6 +15,7 @@ import { Route as CalculatorRouteImport } from './routes/calculator'
 import { Route as CreateOfferRouteImport } from './routes/create-offer'
 import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OffersRouteImport } from './routes/offers'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
@@ -51,6 +52,11 @@ const EarningsRoute = EarningsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OffersRoute = OffersRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/create-offer': typeof CreateOfferRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/create-offer': typeof CreateOfferRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/create-offer': typeof CreateOfferRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/create-offer'
     | '/earnings'
     | '/login'
+    | '/notifications'
     | '/offers'
     | '/profile'
     | '/projects'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/create-offer'
     | '/earnings'
     | '/login'
+    | '/notifications'
     | '/offers'
     | '/profile'
     | '/projects'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/create-offer'
     | '/earnings'
     | '/login'
+    | '/notifications'
     | '/offers'
     | '/profile'
     | '/projects'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   CreateOfferRoute: typeof CreateOfferRoute
   EarningsRoute: typeof EarningsRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   OffersRoute: typeof OffersRoute
   ProfileRoute: typeof ProfileRoute
   ProjectsRoute: typeof ProjectsRoute
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offers': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateOfferRoute: CreateOfferRoute,
   EarningsRoute: EarningsRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   OffersRoute: OffersRoute,
   ProfileRoute: ProfileRoute,
   ProjectsRoute: ProjectsRoute,

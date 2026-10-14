@@ -49,7 +49,7 @@ export function referralCommission(fee: number, eligible: boolean, successful: b
 export const requiresAdvance = (projectTotalInr: number, countryCode = 'IN') => countryByCode(countryCode).tier1 ? convertFromInr(projectTotalInr, 'USD') >= 1000 : projectTotalInr >= 50000;
 export const advanceThresholdLabel = (countryCode = 'IN') => countryByCode(countryCode).tier1 ? '$1,000' : '₹50,000';
 export const canAccess = (role: Role, page: string) => {
-  if (['/','/services','/track','/profile','/welcome','/login'].includes(page)) return true;
+  if (['/','/services','/track','/profile','/welcome','/login','/notifications'].includes(page)) return true;
   if (page === '/admin') return role === 'admin';
   if (page === '/projects') return role === 'customer' || role === 'admin';
   if (['/offers','/create-offer'].includes(page)) return role === 'reseller' || role === 'admin';
