@@ -123,10 +123,17 @@ export const verifyDeletion = createServerFn({ method: 'POST' })
     const ok = r && r.status === 'Verification Pending' && r.verify_hash === await sha256(data.token)
       && r.verify_expires_at && new Date(r.verify_expires_at).getTime() > Date.now();
     if (!ok) throw new Error('Invalid or expired link.');
-    const u = await sb.from('deletion_requests').update({ status: 'Verified', verified_at: new Date().toISOString(), verify_hash: null }).eq('id', data.id).eq('status', 'Verification Pending');
-    if (u.error) throw new Error('Could not verify. Please try again.');
+    const u = await updReq(sb, data.id, null, 'requester', ['Verification Pending'], { status: 'Verified', verified_at: new Date().toISOString(), verify_hash: null }).catch(() => []);
+    if (!u.length) throw new Error('Could not verify. Please try again.');
     return { ok: true };
   });
+
+/** Applies a deletion-request change in one DB transaction, attributed to a server-verified actor. */
+async function updReq(sb: Admin, id: string, actor: string | null, kind: 'admin' | 'requester', from: string[], patch: Record<string, string | null>) {
+  const { data, error } = await sb.rpc('svc_update_deletion_request', { _id: id, _actor: actor as string, _actor_kind: kind, _from: from, _patch: patch });
+  if (error) throw new Error('step:update-request');
+  return (data ?? []) as Array<{ email: string; request_no: string | null }>;
+}
 
 /* ---------------- Admin deletion workflow ---------------- */
 
@@ -144,9 +151,9 @@ export const startDeletionVerification = createServerFn({ method: 'POST' })
     const sb = await admin();
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    const { data: row, error } = await sb.from('deletion_requests')
-      .update({ status: 'Verification Pending', verify_hash: await sha256(token), verify_expires_at: new Date(Date.now() + 48 * 3600_000).toISOString() })
-      .eq('id', data.id).in('status', ['Received', 'Verification Pending']).select('email,request_no').single();
+    const rows = await updReq(sb, data.id, context.userId, 'admin', ['Received', 'Verification Pending'],
+      { status: 'Verification Pending', verify_hash: await sha256(token), verify_expires_at: new Date(Date.now() + 48 * 3600_000).toISOString() }).catch(() => []);
+    const row = rows[0]; const error = !row;
     if (error || !row) throw new Error('This request cannot be verified in its current status.');
     return { email: row.email, requestNo: row.request_no, link: `${SITE_URL}/delete-account?r=${data.id}&t=${token}` };
   });
@@ -158,7 +165,7 @@ export const processDeletionRequest = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     await requireAdmin(context);
     const sb = await admin();
-    const { data: r } = await sb.from('deletion_requests').update({ status: 'Processing' }).eq('id', data.id).eq('status', 'Verified').select('email').single();
+    const r = (await updReq(sb, data.id, context.userId, 'admin', ['Verified'], { status: 'Processing' }).catch(() => []))[0];
     if (!r) throw new Error('Only verified requests can be processed (or it is already processing).');
     try {
       const { data: uid } = await sb.rpc('find_user_id_by_email', { _email: r.email });
@@ -175,10 +182,10 @@ export const processDeletionRequest = createServerFn({ method: 'POST' })
         must(await sb.from('project_requests').update({ client_name: 'Deleted user', client_email: 'deleted@invalid', client_phone: '', requirements: '', attachments: [] }).eq('client_email', r.email), 'requests');
         must(await sb.from('projects').update({ customer_email: '', customer_id: null }).eq('customer_email', r.email), 'projects');
       }
-      must(await sb.from('deletion_requests').update({ status: 'Completed', completed_at: new Date().toISOString(), email: 'redacted@invalid', reason: '' }).eq('id', data.id), 'complete');
+      if (!(await updReq(sb, data.id, context.userId, 'admin', ['Processing'], { status: 'Completed', completed_at: new Date().toISOString(), email: 'redacted@invalid', reason: '' })).length) throw new Error('step:complete');
       return { ok: true };
     } catch (e) {
-      await sb.from('deletion_requests').update({ status: 'Verified' }).eq('id', data.id).eq('status', 'Processing');
+      await updReq(sb, data.id, context.userId, 'admin', ['Processing'], { status: 'Verified' }).catch(() => []);
       throw new Error(e instanceof Error && !e.message.startsWith('step:') ? e.message : 'Deletion failed; the request is back to Verified so you can retry.');
     }
   });
