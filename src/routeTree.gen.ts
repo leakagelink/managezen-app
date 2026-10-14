@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CalculatorRouteImport } from './routes/calculator'
 import { Route as CreateOfferRouteImport } from './routes/create-offer'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -45,6 +46,11 @@ const CalculatorRoute = CalculatorRouteImport.update({
 const CreateOfferRoute = CreateOfferRouteImport.update({
   id: '/create-offer',
   path: '/create-offer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EarningsRoute = EarningsRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/calculator': typeof CalculatorRoute
   '/create-offer': typeof CreateOfferRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/calculator': typeof CalculatorRoute
   '/create-offer': typeof CreateOfferRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/calculator': typeof CalculatorRoute
   '/create-offer': typeof CreateOfferRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/earnings': typeof EarningsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/calculator'
     | '/create-offer'
+    | '/delete-account'
     | '/earnings'
     | '/login'
     | '/notifications'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/calculator'
     | '/create-offer'
+    | '/delete-account'
     | '/earnings'
     | '/login'
     | '/notifications'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/calculator'
     | '/create-offer'
+    | '/delete-account'
     | '/earnings'
     | '/login'
     | '/notifications'
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   CalculatorRoute: typeof CalculatorRoute
   CreateOfferRoute: typeof CreateOfferRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   EarningsRoute: typeof EarningsRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -279,6 +292,13 @@ declare module '@tanstack/react-router' {
       path: '/create-offer'
       fullPath: '/create-offer'
       preLoaderRoute: typeof CreateOfferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/earnings': {
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   CalculatorRoute: CalculatorRoute,
   CreateOfferRoute: CreateOfferRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   EarningsRoute: EarningsRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
