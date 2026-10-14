@@ -17,10 +17,12 @@ import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OffersRouteImport } from './routes/offers'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 
@@ -64,6 +66,11 @@ const OffersRoute = OffersRouteImport.update({
   path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -82,6 +89,11 @@ const ReferralsRoute = ReferralsRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrackRoute = TrackRouteImport.update({
@@ -104,10 +116,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/referrals': typeof ReferralsRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/welcome': typeof WelcomeRoute
 }
@@ -120,10 +134,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/referrals': typeof ReferralsRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/welcome': typeof WelcomeRoute
 }
@@ -137,10 +153,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/referrals': typeof ReferralsRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/welcome': typeof WelcomeRoute
 }
@@ -155,10 +173,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/offers'
+    | '/privacy'
     | '/profile'
     | '/projects'
     | '/referrals'
     | '/services'
+    | '/terms'
     | '/track'
     | '/welcome'
   fileRoutesByTo: FileRoutesByTo
@@ -171,10 +191,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/offers'
+    | '/privacy'
     | '/profile'
     | '/projects'
     | '/referrals'
     | '/services'
+    | '/terms'
     | '/track'
     | '/welcome'
   id:
@@ -187,10 +209,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/offers'
+    | '/privacy'
     | '/profile'
     | '/projects'
     | '/referrals'
     | '/services'
+    | '/terms'
     | '/track'
     | '/welcome'
   fileRoutesById: FileRoutesById
@@ -204,10 +228,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   OffersRoute: typeof OffersRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ProjectsRoute: typeof ProjectsRoute
   ReferralsRoute: typeof ReferralsRoute
   ServicesRoute: typeof ServicesRoute
+  TermsRoute: typeof TermsRoute
   TrackRoute: typeof TrackRoute
   WelcomeRoute: typeof WelcomeRoute
 }
@@ -270,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -298,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track': {
       id: '/track'
       path: '/track'
@@ -324,10 +364,12 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   OffersRoute: OffersRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ProjectsRoute: ProjectsRoute,
   ReferralsRoute: ReferralsRoute,
   ServicesRoute: ServicesRoute,
+  TermsRoute: TermsRoute,
   TrackRoute: TrackRoute,
   WelcomeRoute: WelcomeRoute,
 }
