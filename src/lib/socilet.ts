@@ -53,6 +53,7 @@ export const requiresAdvance = (projectTotalInr: number, countryCode = 'IN') => 
 export const advanceThresholdLabel = (countryCode = 'IN') => countryByCode(countryCode).tier1 ? '$1,000' : '₹50,000';
 export const canAccess = (role: Role, page: string) => {
   if (['/','/services','/track','/profile','/welcome','/login','/notifications','/privacy','/terms'].includes(page)) return true;
+  if (page.startsWith('/offer/')) return true; // public shareable offer pages
   if (page === '/admin') return role === 'admin';
   if (page === '/projects') return role === 'customer' || role === 'admin';
   if (['/offers','/create-offer'].includes(page)) return role === 'reseller' || role === 'admin';
