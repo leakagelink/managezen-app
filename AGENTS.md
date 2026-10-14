@@ -14,6 +14,7 @@
 - Payments, commissions and payouts stay simulated; never represent them as live transactions.
 - Present all routes in a shared compact app viewport with bottom navigation and an accessible menu on every screen size, so desktop preview preserves the mobile experience.
 - Signed-in users see live screens from src/components/socilet/live.tsx (referrals, earnings/payouts, projects, notifications, admin queues); signed-out visitors keep sample screens. Public tracking uses the track_project database function so only non-private fields leave the database.
-- Client attachments upload only via the `uploadRequestFiles` server function (one-time upload token, type/size checks); never re-open anonymous storage INSERT — open buckets get abused.
+- Client attachments upload only via the `uploadRequestFiles` server function (token + atomic claim with upload_state, verified objects, cleanup on failure); never re-open anonymous storage INSERT — open buckets get abused.
 - Financial integrity (base price, locked amounts, status transitions, payout ≤ available) is enforced by database triggers plus an audit_log; UI checks are convenience only.
-- Account deletion runs server-side in `deleteMyAccount` (own account only); keep its dependency plan in sync with the Privacy Policy text.
+- Account deletion runs through `runAccountDeletion` (src/lib/accountDeletion.ts): single-flight job, login blocked first and deleted last, every step error-checked; keep its dependency plan in sync with the Privacy Policy and /delete-account text.
+- Public deletion requests go through rate-limited server functions with a hashed, 48-hour email verification link; Verified/Processing/Completed can only be set by the server workflow.
