@@ -95,7 +95,7 @@ function RequestForm({ code, price }: { code: string; price: number }) {
     <h2 className="mt-2 text-base font-bold">Request submitted</h2>
     <p className="mt-2 text-xs text-muted-foreground">Save your tracking ID. Socilet will review your requirements and start your project.</p>
     <p className="mt-3 text-lg font-extrabold tracking-wide">{done}</p>
-    <Button asChild className="mt-4 w-full"><Link to="/track" search={{ code: done } as never}>Track my project <ArrowRight/></Link></Button>
+    <Button asChild className="mt-4 w-full"><a href={`/track?code=${encodeURIComponent(done)}`}>Track my project <ArrowRight/></a></Button>
     <div className="mt-4 text-left"><AdvanceNotice totalInr={price} country={f.country}/></div>
   </section>;
   return <form onSubmit={submit} className="panel space-y-2 p-5">
