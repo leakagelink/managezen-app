@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { AdvanceNotice } from './advance';
 import { Link, useParams } from '@tanstack/react-router';
-import { ArrowRight, Check, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check, Paperclip, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useSocilet } from './context';
