@@ -13,3 +13,4 @@
 - Keep business rules and sample records in browser-safe library modules, with reusable screen components shared by individual TanStack content routes.
 - Payments, commissions and payouts stay simulated; never represent them as live transactions.
 - Present all routes in a shared compact app viewport with bottom navigation and an accessible menu on every screen size, so desktop preview preserves the mobile experience.
+- Signed-in users see live screens from src/components/socilet/live.tsx (referrals, earnings/payouts, projects, notifications, admin queues); signed-out visitors keep sample screens. Public tracking uses the track_project database function so only non-private fields leave the database.
