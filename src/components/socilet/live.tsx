@@ -76,7 +76,8 @@ export function Notifications(){
 }
 
 /** Admin queues for real data: referrals, payout requests and projects. */
-type ReqRow={id:string;tracking_code:string;offer_code:string;service:string;total:number;client_name:string;client_email:string;client_phone:string;country:string;requirements:string;status:string;created_at:string};
+type ReqRow={id:string;tracking_code:string;offer_code:string;service:string;total:number;client_name:string;client_email:string;client_phone:string;country:string;requirements:string;status:string;created_at:string;attachments:string[]};
+async function openAttachment(path:string){const {data}=await supabase.storage.from('project-files').createSignedUrl(path,300);if(data?.signedUrl)window.open(data.signedUrl,'_blank','noopener')}
 export function AdminLive(){
  const refs=useRows<ReferralRow>('referrals',true);const pays=useRows<PayoutRow>('payout_requests',true);const projs=useRows<ProjectRow>('projects',true);
  const [reqs,setReqs]=useState<ReqRow[]>([]);const loadReqs=useCallback(async()=>{const {data}=await supabase.from('project_requests').select('*').order('created_at',{ascending:false});setReqs((data??[]) as ReqRow[])},[]);useEffect(()=>{void loadReqs()},[loadReqs]);
