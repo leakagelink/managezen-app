@@ -1,3 +1,5 @@
+import { uploadRequestFiles } from '@/lib/security.functions';
+import { checkFile, ACCEPT_ATTR } from '@/lib/uploadRules';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { AdvanceNotice } from './advance';
@@ -83,7 +85,7 @@ function RequestForm({ code, price }: { code: string; price: number }) {
   function pickFiles(list: FileList | null) {
     if (!list) return;
     const next = [...files, ...Array.from(list)].slice(0, 5);
-    if (next.some(x => x.size > 10 * 1024 * 1024)) return setErr('Each file must be under 10 MB.');
+    const bad = next.map(x => checkFile(x.name, x.type, x.size)).find(Boolean); if (bad) return setErr(bad + '. Allowed: images, PDF, DOC, ZIP, TXT up to 10 MB.');
     setErr(''); setFiles(next);
   }
   async function submit(e: FormEvent) {
@@ -92,8 +94,9 @@ function RequestForm({ code, price }: { code: string; price: number }) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) return setErr('Please enter a valid email.');
     if (f.req.trim().length < 10) return setErr('Please describe your project requirements (at least 10 characters).');
     setBusy(true);
-    const { data, error } = await supabase.rpc('submit_project_request', { _offer_code: code, _name: f.name.slice(0,100), _email: f.email.trim().slice(0,255), _phone: f.phone.slice(0,20), _country: f.country, _requirements: f.req.slice(0,2000) });
-    if (error || !data) {
+    const { data, error } = await supabase.rpc('submit_project_request_v2', { _offer_code: code, _name: f.name.slice(0,100), _email: f.email.trim().slice(0,255), _phone: f.phone.slice(0,20), _country: f.country, _requirements: f.req.slice(0,2000) });
+    const row = Array.isArray(data) ? data[0] : null;
+    if (error || !row) {
       setBusy(false);
       const m = error?.message || '';
       if (m.includes('Offer not available')) return setErr('This offer is not live yet. It must be approved by Socilet admin before clients can submit requests.');
@@ -102,16 +105,11 @@ function RequestForm({ code, price }: { code: string; price: number }) {
       if (m.includes('Invalid input')) return setErr('Please check your phone number and requirements length.');
       return setErr('Could not submit right now. Please try again.');
     }
-    const tracking = String(data);
+    const tracking = row.tracking_code;
     if (files.length) {
-      const paths: string[] = [];
-      for (const file of files) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-60);
-        const path = `${tracking}/${Date.now()}-${safe}`;
-        const { error: upErr } = await supabase.storage.from('project-files').upload(path, file, { contentType: file.type || 'application/octet-stream' });
-        if (!upErr) paths.push(path);
-      }
-      if (paths.length) await supabase.rpc('attach_request_files', { _tracking_code: tracking, _paths: paths });
+      const fd = new FormData(); fd.append('tracking', tracking); fd.append('token', row.upload_token);
+      files.forEach(x => fd.append('files', x));
+      try { await uploadRequestFiles({ data: fd }); } catch { setErr('Your request was saved, but files could not be uploaded. Please email them to hello@socilet.in with your tracking ID.'); }
     }
     setBusy(false);
     setDone(tracking);
