@@ -15,6 +15,13 @@
       "when": 1791952804097,
       "tag": "0001_referrals_projects_payouts_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791952820832,
+      "tag": "0002_fix_notify_fields",
+      "breakpoints": true
     }
   ]
 }
