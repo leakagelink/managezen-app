@@ -183,9 +183,8 @@ export const verifyDeletion = createServerFn({ method: 'POST' })
 
 /* ---------------- Admin deletion workflow ---------------- */
 
-async function requireAdmin(ctx: { supabase: { rpc: (...a: never[]) => unknown }; userId: string }) {
-  const sbUser = ctx.supabase as unknown as { rpc: (f: string, a: object) => Promise<{ data: unknown }> };
-  const { data } = await sbUser.rpc('has_role', { _user_id: ctx.userId, _role: 'admin' });
+async function requireAdmin(ctx: { supabase: { rpc: (fn: 'has_role', args: { _user_id: string; _role: 'admin' }) => PromiseLike<{ data: boolean | null }> }; userId: string }) {
+  const { data } = await ctx.supabase.rpc('has_role', { _user_id: ctx.userId, _role: 'admin' });
   if (!data) throw new Error('Forbidden');
 }
 
@@ -194,7 +193,7 @@ export const startDeletionVerification = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => { if (!/^[0-9a-f-]{36}$/i.test(d?.id ?? '')) throw new Error('Invalid'); return d; })
   .handler(async ({ data, context }) => {
-    await requireAdmin(context as never);
+    await requireAdmin(context);
     const sb = await admin();
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -210,7 +209,7 @@ export const processDeletionRequest = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => { if (!/^[0-9a-f-]{36}$/i.test(d?.id ?? '')) throw new Error('Invalid'); return d; })
   .handler(async ({ data, context }) => {
-    await requireAdmin(context as never);
+    await requireAdmin(context);
     const sb = await admin();
     const { data: r } = await sb.from('deletion_requests').update({ status: 'Processing' }).eq('id', data.id).eq('status', 'Verified').select('email').single();
     if (!r) throw new Error('Only verified requests can be processed (or it is already processing).');
