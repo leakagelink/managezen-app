@@ -2,7 +2,7 @@ import { ShieldCheck } from 'lucide-react';
 import { requiresAdvance, advanceThresholdLabel } from '@/lib/socilet';
 
 /** Advance-payment and resources notice shown on every project. Country decides the threshold. */
-export function AdvanceNotice({ totalInr, country = 'IN' }: { totalInr?: number; country?: string }) {
+export function AdvanceNotice({ totalInr, country = 'IN' }: { totalInr?: number | undefined; country?: string | undefined }) {
   const label = advanceThresholdLabel(country);
   const known = typeof totalInr === 'number' && totalInr > 0;
   const zero = known ? !requiresAdvance(totalInr, country) : undefined;
