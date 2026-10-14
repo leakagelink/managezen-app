@@ -6,7 +6,8 @@ import { SociletProvider, useSocilet } from './context';
 import { canAccess, demoRoles, type Role } from '@/lib/socilet';
 export function AppProvider({children}:{children:ReactNode}) {return <SociletProvider>{children}</SociletProvider>}
 const nav=[{to:'/',label:'Home',icon:LayoutGrid},{to:'/services',label:'Service catalogue',icon:Layers},{to:'/calculator',label:'Pricing calculator',icon:Calculator},{to:'/referrals',label:'My referrals',icon:Link2},{to:'/offers',label:'My offers',icon:FolderOpen},{to:'/track',label:'Track a project',icon:RouteIcon},{to:'/earnings',label:'Earnings & payouts',icon:Wallet},{to:'/projects',label:'My projects',icon:FolderOpen},{to:'/admin',label:'Admin panel',icon:ShieldCheck},{to:'/profile',label:'My profile',icon:UserRound}] as const;
-export function Brand({small=false}:{small?:boolean}) {return <Link to="/" className="font-display text-[30px] font-extrabold text-foreground">{small?'S':'Socilet'}</Link>}
+import logoAsset from '@/assets/socilet-affiliate-logo.png.asset.json';
+export function Brand({small=false}:{small?:boolean}) {return <Link to="/" aria-label="Socilet Affiliate home">{small?<span className="font-display text-[30px] font-extrabold text-foreground">S</span>:<img src={logoAsset.url} alt="Socilet Affiliate" className="h-10 w-auto"/>}</Link>}
 export function Shell({children}:{children:ReactNode}) {
  const {role,setRole,name,signedIn}=useSocilet(); const path=useRouterState({select:s=>s.location.pathname}); const navigate=useNavigate(); const [menu,setMenu]=useState(false); const [notice,setNotice]=useState(false);
  const publicScreen=['/welcome','/login'].includes(path);const items=nav.filter(i=>canAccess(role,i.to));const home=path==='/';
