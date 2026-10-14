@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useSocilet } from './context';
 import { PageHeading, SectionHeading, Metric, Note, EmptyState, Status } from './shared';
-import { money, indianDate, services, referralCommission, publicProject, convertFromInr, inrPerUnit } from '@/lib/socilet';
+import { money, indianDate, services, referralCommission, publicProject , inrPerUnit } from '@/lib/socilet';
 import { earningsSummary, whatsappShareUrl, availablePayout, type ReferralRow, type PayoutRow } from '@/lib/partner';
 
 type Notif = { id:string; title:string; body:string; read:boolean; created_at:string };
@@ -37,16 +37,16 @@ export function LiveReferrals(){
 }
 
 export function LiveEarnings(){
- const {user,offers}=useSocilet();const refs=useRows<ReferralRow>('referrals',true);const pays=useRows<PayoutRow>('payout_requests',true);
+ const {user,offers,profile}=useSocilet();const refs=useRows<ReferralRow>('referrals',true);const pays=useRows<PayoutRow>('payout_requests',true);
  const [amount,setAmount]=useState('');const [details,setDetails]=useState('');const [err,setErr]=useState('');const [msg,setMsg]=useState('');
  const s=earningsSummary(refs.rows,offers,pays.rows);const avail=availablePayout(s);
- async function request(e:FormEvent){e.preventDefault();setErr('');setMsg('');const n=Number(amount)*inrPerUnit[currencyOf()];if(!Number.isFinite(n)||n<=0){setErr('Enter a valid amount.');return}if(n>avail+0.5){setErr(`You can request up to ${money(avail)}.`);return}if(details.trim().length<4){setErr('Enter your UPI ID or bank details.');return}
+ async function request(e:FormEvent){e.preventDefault();setErr('');setMsg('');const n=Number(amount)*inrPerUnit[profile.currency];if(!Number.isFinite(n)||n<=0){setErr('Enter a valid amount.');return}if(n>avail+0.5){setErr(`You can request up to ${money(avail)}.`);return}if(details.trim().length<4){setErr('Enter your UPI ID or bank details.');return}
   const {error}=await supabase.from('payout_requests').insert({user_id:user!.id,amount:Math.round(n),details:details.trim()});if(error){setErr('Could not submit the request.');return}setAmount('');setMsg('Payout request sent to Socilet for review. No money is moved by this app.');void pays.reload()}
  return <div className="screen-enter"><PageHeading eyebrow="Your growth" title="Earnings & payouts"/>
   <div className="grid grid-cols-2 gap-3"><Metric label="Reseller profit" value={money(s.resellerProfit)} icon={<Wallet size={16}/>} foot="Active approved offers"/><Metric label="Referral commission" value={money(s.referralEarned)} icon={<Users size={16}/>} foot="Completed referrals"/><Metric label="Paid / requested" value={money(s.requested)} icon={<Clock size={16}/>} foot="Pending + approved payouts"/><Metric label="Available" value={money(avail)} icon={<CircleCheck size={16}/>} foot="Can be requested"/></div>
-  <section className="panel mt-5 p-5"><SectionHeading title="Request a payout"/><form onSubmit={request} className="space-y-3"><Input aria-label="Amount" inputMode="decimal" placeholder={`Amount (${currencyOf()})`} value={amount} onChange={e=>setAmount(e.target.value)}/><Input aria-label="UPI or bank details" placeholder="UPI ID or bank account details" value={details} onChange={e=>setDetails(e.target.value)}/>{err&&<p role="alert" className="text-xs text-destructive">{err}</p>}{msg&&<p role="status" className="text-xs text-success">{msg}</p>}<Button type="submit" className="w-full" disabled={avail<=0}>Request payout</Button></form><div className="mt-3"><Note>Payout requests are recorded for Socilet's team. Actual transfers happen outside this app.</Note></div></section>
+  <section className="panel mt-5 p-5"><SectionHeading title="Request a payout"/><form onSubmit={request} className="space-y-3"><Input aria-label="Amount" inputMode="decimal" placeholder={`Amount (${profile.currency})`} value={amount} onChange={e=>setAmount(e.target.value)}/><Input aria-label="UPI or bank details" placeholder="UPI ID or bank account details" value={details} onChange={e=>setDetails(e.target.value)}/>{err&&<p role="alert" className="text-xs text-destructive">{err}</p>}{msg&&<p role="status" className="text-xs text-success">{msg}</p>}<Button type="submit" className="w-full" disabled={avail<=0}>Request payout</Button></form><div className="mt-3"><Note>Payout requests are recorded for Socilet's team. Actual transfers happen outside this app.</Note></div></section>
   <section className="panel mt-5 p-5"><SectionHeading title="Payout history"/>{pays.loading?<Spinner/>:pays.rows.length?pays.rows.map(p=><div key={p.id} className="flex items-center justify-between border-b py-3 last:border-0"><div><p className="text-sm font-semibold">{money(Number(p.amount))}</p><p className="text-[11px] text-muted-foreground">{p.method} · {indianDate(p.created_at)}</p></div><Status status={p.status}/></div>):<EmptyState title="No payouts yet" description="Your payout requests will appear here."/>}</section></div>;
- function currencyOf(){return (Object.keys(inrPerUnit) as (keyof typeof inrPerUnit)[]).find(c=>money(inrPerUnit[c]).replace(/[^0-9]/g,'')==='1')??'INR'}
+
 }
 
 export function LiveProjects(){
@@ -86,4 +86,3 @@ export function AdminLive(){
   :<div><form onSubmit={create} className="mb-4 space-y-2"><Input aria-label="Customer email" placeholder="Customer email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/><select aria-label="Project service" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={np.service} onChange={e=>setNp({...np,service:e.target.value})}>{services.map(x=><option key={x.id}>{x.name}</option>)}</select><Input aria-label="Project value in rupees" inputMode="numeric" placeholder="Project value (₹)" value={np.total} onChange={e=>setNp({...np,total:e.target.value})}/><Button type="submit" className="w-full">Create project</Button></form>{projs.rows.map(p=><div key={p.id} className="border-b py-3 last:border-0"><p className="text-sm font-semibold">{p.service} · {p.tracking_code}</p><p className="text-[11px] text-muted-foreground">{p.customer_email} · {money(Number(p.total))} · {p.stage}</p><input aria-label={`Progress for ${p.tracking_code}`} type="range" min={0} max={100} step={20} defaultValue={p.progress} className="mt-2 w-full" onMouseUp={e=>stage(p,Number((e.target as HTMLInputElement).value))} onTouchEnd={e=>stage(p,Number((e.target as HTMLInputElement).value))} onKeyUp={e=>stage(p,Number((e.target as HTMLInputElement).value))}/></div>)}</div>}
  </section>;
 }
-export { convertFromInr };
