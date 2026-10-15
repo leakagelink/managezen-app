@@ -1,15 +1,30 @@
 -- NOT APPLIED. Requires explicit owner approval before running on production.
--- Revision 2: empty search_path + fully schema-qualified names; idempotent scheduling.
--- Purpose: automatically delete expired rate-limit entries (public.rate_limits only).
--- Longest limiter window in app code is 24h (del-email, req-email); a 25h cutoff never
--- removes an entry that can still count toward a limit.
--- Run as ONE migration (single transaction). Executed by the privileged migration role (postgres).
+-- Revision 3. Purpose: automatically delete expired rate-limit entries (public.rate_limits only).
+-- Longest limiter window in app code is 24h (del-email, req-email); the 25h cutoff never removes an
+-- entry that can still count toward a limit.
+--
+-- Evidence (read-only, production): pg_cron 1.6.4 available, in shared_preload_libraries and in
+-- supautils.privileged_extensions; not relocatable; control file sets no schema; cron.database_name =
+-- postgres; cron.timezone = GMT. Supabase install docs use: CREATE EXTENSION pg_cron WITH SCHEMA pg_catalog.
+-- pg_cron always creates its own objects in schema "cron"; WITH SCHEMA only records the extension's schema.
+--
+-- Executed as ONE migration (single transaction) by the privileged migration role (postgres).
+-- Any failure rolls back everything, including the extension.
 
--- 1. Scheduler extension (no-op if already present)
+-- ========================= PRECHECKS (read-only, BEFORE) =========================
+-- P1  SELECT extname FROM pg_extension WHERE extname = 'pg_cron';                         -- expect 0 rows
+-- P2  SELECT count(*) FROM pg_proc WHERE proname = 'purge_expired_rate_limits';           -- expect 0
+-- P3  SELECT now() AS t0, count(*) AS total,
+--            count(*) FILTER (WHERE created_at <  now() - interval '25 hours') AS expired_now
+--       FROM public.rate_limits;                                                            -- record t0
+-- P4  SELECT id, created_at FROM public.rate_limits
+--      WHERE created_at >= now() - interval '23 hours' ORDER BY created_at;                -- record ids (no PII)
+
+-- ================================ MIGRATION ======================================
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+GRANT USAGE ON SCHEMA cron TO postgres;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO postgres;
 
--- 2. Narrow, batched purge function. Empty search_path: every object is schema-qualified,
---    so nothing can be shadowed by objects created elsewhere.
 CREATE OR REPLACE FUNCTION public.purge_expired_rate_limits(_batch integer DEFAULT 5000, _max_batches integer DEFAULT 10)
 RETURNS integer
 LANGUAGE plpgsql
@@ -38,11 +53,12 @@ END $$;
 REVOKE ALL ON FUNCTION public.purge_expired_rate_limits(integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.purge_expired_rate_limits(integer, integer) TO service_role;
 
--- 3. Index (table is ~8 rows / 48 kB; plain CREATE INDEX locks writes for milliseconds).
+-- ~8 rows / 48 kB today: plain CREATE INDEX blocks writes for milliseconds.
+-- (CONCURRENTLY is not allowed inside a transaction.)
 CREATE INDEX IF NOT EXISTS rate_limits_created_at_idx ON public.rate_limits (created_at);
 
--- 4. Idempotent schedule: pg_cron 1.6 updates a job with the same name instead of adding a
---    second one. The guard below also makes a re-run a no-op when the job already matches.
+-- pg_cron 1.6: cron.schedule(name, ...) updates the existing job with the same name for the same
+-- user instead of creating a second one. The guard additionally makes a re-run a no-op.
 DO $do$
 BEGIN
   IF NOT EXISTS (
@@ -57,34 +73,39 @@ BEGIN
   END IF;
 END $do$;
 
--- ===== PRECHECKS (read-only, run BEFORE) =====
--- SELECT extname, extversion FROM pg_extension WHERE extname = 'pg_cron';           -- expect 0 rows
--- SELECT count(*) FROM pg_proc WHERE proname = 'purge_expired_rate_limits';         -- expect 0
--- SELECT now() AS t0,
---        count(*) FILTER (WHERE created_at <  now() - interval '25 hours') AS expired,
---        count(*) FILTER (WHERE created_at >= now() - interval '24 hours') AS active_24h
---   FROM public.rate_limits;                                                         -- record t0 + counts
-
--- ===== POSTCHECKS (read-only, run AFTER) =====
--- SELECT jobid, jobname, schedule, command, username, active FROM cron.job
---  WHERE jobname = 'purge-expired-rate-limits';                                     -- expect exactly 1 row
--- SELECT p.prosecdef, p.proconfig,
---        has_function_privilege('anon', p.oid, 'EXECUTE') AS anon,
---        has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authd,
---        has_function_privilege('service_role', p.oid, 'EXECUTE') AS svc
---   FROM pg_proc p WHERE p.proname = 'purge_expired_rate_limits';                    -- expect true, {search_path=""}, false, false, true
+-- ========================= POSTCHECKS (read-only, AFTER) =========================
+-- Q1  SELECT jobid, jobname, schedule, command, username, database, active
+--       FROM cron.job WHERE jobname = 'purge-expired-rate-limits';
+--     expect exactly 1 row: '17 * * * *', 'SELECT public.purge_expired_rate_limits(5000, 10)',
+--     username = postgres, database = postgres, active = true
+-- Q2  SELECT pg_get_userbyid(p.proowner) AS owner, p.prosecdef, p.proconfig,
+--            has_function_privilege('anon', p.oid, 'EXECUTE')          AS anon_exec,
+--            has_function_privilege('authenticated', p.oid, 'EXECUTE') AS auth_exec,
+--            has_function_privilege('service_role', p.oid, 'EXECUTE')  AS svc_exec
+--       FROM pg_proc p WHERE p.proname = 'purge_expired_rate_limits';
+--     expect postgres, true, {search_path=""}, false, false, true
+-- Q3  SELECT r.rolname,
+--            has_schema_privilege(r.rolname, 'cron', 'USAGE') AS cron_usage,
+--            has_table_privilege(r.rolname, 'cron.job', 'INSERT,UPDATE,DELETE') AS job_write
+--       FROM pg_roles r WHERE r.rolname IN ('anon', 'authenticated');
+--     expect cron_usage = false and job_write = false for both
 -- After the next :17 UTC run:
--- SELECT status, return_message, start_time, end_time FROM cron.job_run_details
---  WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'purge-expired-rate-limits')
---  ORDER BY start_time DESC LIMIT 3;                                                 -- expect 'succeeded'
--- SELECT count(*) FILTER (WHERE created_at <  now() - interval '25 hours') AS expired,
---        count(*) FILTER (WHERE created_at >= '<t0>'::timestamptz - interval '24 hours') AS active_since_t0
---   FROM public.rate_limits;                                                         -- expired = 0; active_since_t0 >= active_24h
+-- Q4  SELECT runid, status, return_message, start_time, end_time FROM cron.job_run_details
+--      WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'purge-expired-rate-limits')
+--      ORDER BY start_time DESC LIMIT 3;                         -- expect status 'succeeded'; note start_time = s
+-- Q5  SELECT count(*) AS left_expired FROM public.rate_limits
+--      WHERE created_at < '<s>'::timestamptz - interval '25 hours';                   -- expect 0
+-- Q6  SELECT count(*) AS still_present FROM public.rate_limits WHERE id IN (<ids from P4>);
+--     expect = number of P4 ids (all were younger than 25h at time s, because s - t0 < 2h)
+-- Limits: counts and id lists show the result, not which statement deleted a row. Rows inserted and
+-- aged out between checks are not individually traced. Exact delete-only-expired behaviour is proven
+-- by the single WHERE clause above and by a staging test with synthetic rows (24h, 25h-1s, 25h+1s).
 
--- ===== DISABLE (reversible) =====
+-- ============================ DISABLE (reversible) ===============================
 -- SELECT cron.alter_job((SELECT jobid FROM cron.job WHERE jobname = 'purge-expired-rate-limits'), active := false);
--- ===== FULL ROLLBACK =====
+-- ============================== FULL ROLLBACK ====================================
 -- SELECT cron.unschedule('purge-expired-rate-limits');
 -- DROP FUNCTION IF EXISTS public.purge_expired_rate_limits(integer, integer);
 -- DROP INDEX IF EXISTS public.rate_limits_created_at_idx;
--- (Leave the pg_cron extension installed; B will need it. Dropping it would remove all cron jobs.)
+-- Do NOT drop pg_cron (dropping it deletes every cron job; B also needs it).
+-- Rows already purged were expired hash entries and cannot be restored.
