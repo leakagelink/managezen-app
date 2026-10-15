@@ -22,3 +22,4 @@
 - Database-writing tests run only with LIVE_DB_TESTS=1 and an explicit non-production TEST_SUPABASE_URL; the test file refuses the production ref because preview shares the production backend.
 - Rate limits trust only a validated `cf-connecting-ip` (src/lib/clientIp.ts) and consume atomically via the `consume_rate_limit` DB function (src/lib/rateLimit.ts), failing closed on any error.
 - Live DB tests target staging only via src/lib/liveGuard.ts; production is refused with no override.
+- Public project requests go through the rate-limited `submitProjectRequest` server function (src/lib/projectRequest.ts); direct browser RPC access is revoked by docs/pending-migrations/lock_public_project_request.sql once applied.
