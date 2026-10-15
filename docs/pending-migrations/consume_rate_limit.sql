@@ -1,4 +1,4 @@
--- NOT APPLIED. Apply to staging first, then production only with explicit approval.
+-- APPLIED to production on 15 Oct 2026 (drizzle/migrations/0009_consume_rate_limit.sql) with owner approval.
 -- Atomic rate limit: per-key advisory lock serialises concurrent callers, so count+insert cannot race.
 CREATE OR REPLACE FUNCTION public.consume_rate_limit(_bucket text, _key text, _max integer, _hours integer)
 RETURNS boolean

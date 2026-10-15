@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Socilet Affiliate</string>
+    <string name="title_activity_main">Socilet Affiliate</string>
+    <string name="package_name">in.socilet.affiliate</string>
+    <string name="custom_url_scheme">in.socilet.affiliate</string>
+</resources>
