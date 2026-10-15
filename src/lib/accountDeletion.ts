@@ -22,7 +22,9 @@ export async function runAccountDeletion(sb: DeletionClient, uid: string, email:
     const { data: job } = await sb.from('account_deletion_jobs').select('status').eq('user_id', uid).maybeSingle();
     return job?.status === 'Done' ? 'done' : 'busy';
   }
-  const step = (s: string) => sb.from('account_deletion_jobs').update({ step: s, updated_at: new Date().toISOString() }).eq('user_id', uid);
+  // Progress writes are checked: if the job row cannot be updated we stop before doing more work.
+  const step = async (s: string) =>
+    must(await sb.from('account_deletion_jobs').update({ step: s, updated_at: new Date().toISOString() }).eq('user_id', uid), `progress-${s}`);
   try {
     await step('block-login');
     must(await sb.auth.admin.updateUserById(uid, { ban_duration: '876000h' }), 'block-login');
@@ -54,7 +56,9 @@ export async function runAccountDeletion(sb: DeletionClient, uid: string, email:
     return 'done';
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'step:unknown';
-    await sb.from('account_deletion_jobs').update({ status: 'Failed', last_error: msg.slice(0, 100), updated_at: new Date().toISOString() }).eq('user_id', uid);
+    const fail = await sb.from('account_deletion_jobs').update({ status: 'Failed', last_error: msg.slice(0, 100), updated_at: new Date().toISOString() }).eq('user_id', uid);
+    // If even the failure mark cannot be saved, the job stays 'Running'; claim_deletion_job must treat stale Running jobs as reclaimable.
+    if (fail.error) console.error('deletion-job: could not record failure', uid, msg);
     throw new Error('Deletion could not finish. Your login stays blocked; please retry or contact support.');
   }
 }
