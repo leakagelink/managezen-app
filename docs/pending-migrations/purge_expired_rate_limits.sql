@@ -1,5 +1,5 @@
 -- NOT APPLIED. Requires explicit owner approval before running on production.
--- Revision 4 (targeted: backlog/retry, effective-permission checks, strict duplicate guard).
+-- Revision 5 (targeted: recursive membership check, backlog rule via delete counter, index precheck).
 -- Purpose: automatically delete expired rate-limit entries (public.rate_limits only).
 -- Longest limiter window in app code is 24h (del-email, req-email); the 25h cutoff never removes an
 -- entry that can still count toward a limit.
@@ -19,19 +19,41 @@
 -- P1  SELECT extname FROM pg_extension WHERE extname = 'pg_cron';                         -- expect 0 rows
 -- P2  SELECT count(*) FROM pg_proc WHERE proname = 'purge_expired_rate_limits';           -- expect 0
 -- P3  SELECT now() AS t0, count(*) AS total,
---            count(*) FILTER (WHERE created_at <  now() - interval '25 hours') AS expired_now
---       FROM public.rate_limits;                                                            -- record t0, expired_now
+--            count(*) FILTER (WHERE created_at <  now() - interval '25 hours') AS expired_now,
+--            (SELECT n_tup_del FROM pg_stat_user_tables
+--              WHERE schemaname = 'public' AND relname = 'rate_limits') AS del0
+--       FROM public.rate_limits;                                                            -- record t0, del0
 -- P4  SELECT id, created_at FROM public.rate_limits
 --      WHERE created_at >= now() - interval '23 hours' ORDER BY created_at;                -- record ids (no PII)
--- P5  Role memberships of browser-facing roles (inherited privileges):
---     SELECT m.rolname AS member, g.rolname AS member_of, a.inherit_option
---       FROM pg_auth_members a JOIN pg_roles m ON m.oid = a.member JOIN pg_roles g ON g.oid = a.roleid
---      WHERE m.rolname IN ('anon','authenticated','authenticator');
---     expect: none of them is a member of postgres, service_role, supabase_admin or any role owning cron
+-- P5  Recursive role memberships (direct + indirect chains) of browser-facing roles:
+--     WITH RECURSIVE chain(start_role, role_oid, path) AS (
+--       SELECT r.rolname, r.oid, ARRAY[r.rolname::text]
+--         FROM pg_roles r WHERE r.rolname IN ('anon','authenticated','authenticator')
+--       UNION
+--       SELECT c.start_role, a.roleid, c.path || g.rolname::text
+--         FROM chain c
+--         JOIN pg_auth_members a ON a.member = c.role_oid
+--         JOIN pg_roles g ON g.oid = a.roleid
+--        WHERE NOT g.rolname = ANY (c.path)
+--     )
+--     SELECT c.start_role, g.rolname AS reachable_role, array_to_string(c.path, ' -> ') AS chain,
+--            g.rolsuper, g.rolbypassrls, g.rolcreaterole
+--       FROM chain c JOIN pg_roles g ON g.oid = c.role_oid
+--      WHERE c.role_oid <> (SELECT oid FROM pg_roles WHERE rolname = c.start_role)
+--      ORDER BY c.start_role, array_length(c.path, 1);
+--     STOP if any reachable_role is postgres, service_role, supabase_admin, a role owning objects in
+--     schema cron, or has rolsuper / rolbypassrls. (authenticator -> anon/authenticated/service_role
+--     is Supabase's normal login switch: report it, it is NOT inheritance unless inherit is true; check
+--     pg_auth_members.inherit_option for that edge before deciding.)
 -- P6  Effective (inheritance-aware) privileges on public.rate_limits:
 --     SELECT r.rolname,
 --            has_table_privilege(r.rolname, 'public.rate_limits', 'SELECT,INSERT,UPDATE,DELETE') AS rl_any
 --       FROM pg_roles r WHERE r.rolname IN ('anon','authenticated','authenticator');   -- expect false
+-- P7  Existing indexes on public.rate_limits:
+--     SELECT indexname, indexdef FROM pg_indexes
+--      WHERE schemaname = 'public' AND tablename = 'rate_limits' ORDER BY indexname;
+--     Record whether rate_limits_created_at_idx already exists (pre_existing_idx = true/false).
+--     STOP if it exists with a definition other than btree (created_at).
 
 -- ================================ MIGRATION ======================================
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
@@ -127,12 +149,20 @@ END $do$;
 -- Q4  SELECT runid, status, return_message, start_time, end_time FROM cron.job_run_details
 --      WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'purge-expired-rate-limits')
 --      ORDER BY start_time DESC LIMIT 3;                         -- expect status 'succeeded'; note start_time = s
--- Q5  SELECT count(*) AS left_expired FROM public.rate_limits
+-- Q5  Run s = latest succeeded start_time from Q4. Expired is judged at s, not at t0, so rows that
+--     expired between t0 and s are included automatically.
+--     SELECT count(*) AS left_expired,
+--            (SELECT n_tup_del FROM pg_stat_user_tables
+--              WHERE schemaname = 'public' AND relname = 'rate_limits') AS del1
+--       FROM public.rate_limits
 --      WHERE created_at < '<s>'::timestamptz - interval '25 hours';
---     PASS if 0.
---     If > 0 and P3 expired_now > 50,000: expected backlog. PASS only if left_expired <= expired_now - 50,000
---     (one full run deleted) and it keeps falling by up to 50,000 each following run until 0.
---     If > 0 and P3 expired_now <= 50,000: FAIL, stop and report.
+--     deleted_by_run = del1 - del0 (nothing else deletes from rate_limits while the old
+--     purge_expired_records stays unscheduled; take del0 just before a run when checking later runs).
+--     PASS     : left_expired = 0.
+--     BACKLOG  : left_expired > 0 AND deleted_by_run = 50,000 (run hit its cap). Not a failure; repeat
+--                Q4+Q5 after each next run until left_expired = 0. No PASS is declared until then.
+--     FAIL     : left_expired > 0 AND deleted_by_run < 50,000, or Q4 status <> 'succeeded'. Stop, report.
+--     NOT VERIFIED: if statistics were reset or del1 < del0 (counter unreliable), do not infer counts.
 -- Q6  SELECT count(*) AS still_present FROM public.rate_limits WHERE id IN (<ids from P4>);
 --     expect = number of P4 ids (all were younger than 25h at time s, because s - t0 < 2h)
 -- Limits: counts and id lists show the result, not which statement deleted a row. Rows inserted and
@@ -144,6 +174,8 @@ END $do$;
 -- ============================== FULL ROLLBACK ====================================
 -- SELECT cron.unschedule('purge-expired-rate-limits');
 -- DROP FUNCTION IF EXISTS public.purge_expired_rate_limits(integer, integer);
--- DROP INDEX IF EXISTS public.rate_limits_created_at_idx;
+-- Only if P7 recorded pre_existing_idx = false (index was created by this migration):
+--   DROP INDEX IF EXISTS public.rate_limits_created_at_idx;
+-- If P7 showed it already existed: do NOT drop it.
 -- Do NOT drop pg_cron (dropping it deletes every cron job; B also needs it).
 -- Rows already purged were expired hash entries and cannot be restored.
