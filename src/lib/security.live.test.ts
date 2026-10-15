@@ -4,10 +4,15 @@ import type { Database } from '@/integrations/supabase/types';
 import { runAccountDeletion, type DeletionClient } from './accountDeletion';
 
 // Runs against the real backend with throwaway test accounts. Skipped when no service key is available.
-const URL_ = process.env['TEST_SUPABASE_URL'] ?? 'https://xzuhikowfjopzdlibamd.supabase.co';
-const PUB = process.env['TEST_SUPABASE_PUBLISHABLE_KEY'] ?? 'sb_publishable_eiNGrrHZ2_IxHEqaa9qsJw_fEpaJinv';
+// No defaults: live tests need an explicit staging target and refuse the production project.
+const PROD_REF = 'xzuhikowfjopzdlibamd';
+const URL_ = process.env['TEST_SUPABASE_URL'] ?? '';
+const PUB = process.env['TEST_SUPABASE_PUBLISHABLE_KEY'] ?? '';
+if (process.env['LIVE_DB_TESTS'] === '1' && (!URL_ || URL_.includes(PROD_REF)) && process.env['ALLOW_PROD_DB_TESTS'] !== 'yes-i-am-sure') {
+  throw new Error('LIVE_DB_TESTS refused: set TEST_SUPABASE_URL to a staging project (production is blocked).');
+}
 // Opt-in only: set LIVE_DB_TESTS=1 (point TEST_SUPABASE_URL/KEYS at staging once it exists) so routine runs never write to production.
-const SVC = process.env['LIVE_DB_TESTS'] === '1' ? (process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_SERVICE_ROLE_KEY']) : undefined;
+const SVC = process.env['LIVE_DB_TESTS'] === '1' ? process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] : undefined;
 const d = SVC ? describe : describe.skip;
 const svc = () => createClient<Database>(URL_, SVC!, { auth: { persistSession: false } });
 const pwd = 'Test-' + Math.random().toString(36).slice(2) + 'A1!';
