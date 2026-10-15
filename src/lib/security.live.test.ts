@@ -3,18 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { runAccountDeletion, type DeletionClient } from './accountDeletion';
 
-// Runs against the real backend with throwaway test accounts. Skipped when no service key is available.
-// No defaults: live tests need an explicit staging target and refuse the production project.
-const PROD_REF = 'xzuhikowfjopzdlibamd';
-const URL_ = process.env['TEST_SUPABASE_URL'] ?? '';
-const PUB = process.env['TEST_SUPABASE_PUBLISHABLE_KEY'] ?? '';
-if (process.env['LIVE_DB_TESTS'] === '1' && (!URL_ || URL_.includes(PROD_REF)) && process.env['ALLOW_PROD_DB_TESTS'] !== 'yes-i-am-sure') {
-  throw new Error('LIVE_DB_TESTS refused: set TEST_SUPABASE_URL to a staging project (production is blocked).');
-}
-// Opt-in only: set LIVE_DB_TESTS=1 (point TEST_SUPABASE_URL/KEYS at staging once it exists) so routine runs never write to production.
-const SVC = process.env['LIVE_DB_TESTS'] === '1' ? process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] : undefined;
-const d = SVC ? describe : describe.skip;
-const svc = () => createClient<Database>(URL_ || 'http://localhost.invalid', SVC ?? 'skipped', { auth: { persistSession: false } });
+import { liveTestTarget } from './liveGuard';
+// Writes only to a separate staging backend. liveTestTarget throws for production; there is no override.
+const T = liveTestTarget(process.env);
+const URL_ = T.run ? T.url : 'http://localhost.invalid';
+const PUB = T.run ? T.pub : 'skipped';
+const d = T.run ? describe : describe.skip;
+const svc = () => createClient<Database>(URL_, T.run ? T.svc : 'skipped', { auth: { persistSession: false } });
 const pwd = 'Test-' + Math.random().toString(36).slice(2) + 'A1!';
 
 async function mkUser(sb: DeletionClient, tag: string) {
