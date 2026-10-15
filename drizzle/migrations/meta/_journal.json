@@ -64,6 +64,13 @@
       "when": 1791976612524,
       "tag": "0008_audit_actor_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792059751486,
+      "tag": "0009_consume_rate_limit",
+      "breakpoints": true
     }
   ]
 }

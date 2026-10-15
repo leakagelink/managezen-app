@@ -441,6 +441,10 @@ export type Database = {
         Args: { _token: string; _tracking: string }
         Returns: string
       }
+      consume_rate_limit: {
+        Args: { _bucket: string; _hours: number; _key: string; _max: number }
+        Returns: boolean
+      }
       find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_public_offer: {
         Args: { _code: string }
