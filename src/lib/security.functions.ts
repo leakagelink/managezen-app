@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { getRequestHeader } from '@tanstack/react-start/server';
 import { trustedClientIp } from './clientIp';
+import { isRateLimited, type RpcFn } from './rateLimit';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { MAX_FILES, checkFile, safeFileName } from './uploadRules';
 import { SITE_URL } from './socilet';
@@ -81,13 +82,8 @@ export const deleteMyAccount = createServerFn({ method: 'POST' })
 
 const GENERIC = 'If this email is registered, we will contact it to verify the request.';
 
-async function limited(sb: Admin, bucket: string, key: string, max: number, hours: number) {
-  const since = new Date(Date.now() - hours * 3600_000).toISOString();
-  const { count } = await sb.from('rate_limits').select('id', { count: 'exact', head: true }).eq('bucket', bucket).eq('key_hash', key).gte('created_at', since);
-  if ((count ?? 0) >= max) return true;
-  await sb.from('rate_limits').insert({ bucket, key_hash: key });
-  return false;
-}
+const limited = (sb: Admin, bucket: string, key: string, max: number, hours: number) =>
+  isRateLimited((fn, args) => (sb.rpc as unknown as RpcFn)(fn, args), bucket, key, max, hours);
 
 export const requestDeletion = createServerFn({ method: 'POST' })
   .inputValidator((d: { email: string; reason?: string }) => {
