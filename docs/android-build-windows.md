@@ -21,8 +21,13 @@ keytool -genkey -v -keystore socilet-upload.jks -keyalg RSA -keysize 2048 -valid
 Store `socilet-upload.jks` and passwords outside the project. Never commit them.
 
 ## Build the .aab
-Android Studio → Build → Generate Signed App Bundle → Android App Bundle → select the keystore → release.
-Output: `android\app\release\app-release.aab`. For each update raise `versionCode` in `android\app\build.gradle`.
+Option A: copy `android\keystore.properties.example` to `android\keystore.properties` (git-ignored), fill in your paths/passwords, then:
+```powershell
+cd android
+.\gradlew.bat bundleRelease
+```
+Output: `android\app\build\outputs\bundle\release\app-release.aab`.
+Option B: Android Studio → Build → Generate Signed App Bundle → select the keystore → release. For each update raise `versionCode` in `android\app\build.gradle`.
 
 ## Play Console checklist
 - Enrol in Play App Signing; upload the .aab to Internal testing first.
