@@ -25,7 +25,7 @@ The current manual flow (admin opens a ready-made email and sends it from hello@
 5. Remove the manual email button only after real emails have been delivered and verified end to end.
 
 ## Production guard (enforced in code)
-- `src/lib/security.live.test.ts` has no default backend. With `LIVE_DB_TESTS=1` it refuses to run unless `TEST_SUPABASE_URL` points to a non-production project (production ref is blocked; override `ALLOW_PROD_DB_TESTS=yes-i-am-sure` exists only for an explicitly approved run).
+- `src/lib/security.live.test.ts` has no default backend. With `LIVE_DB_TESTS=1` it refuses to run unless `TEST_SUPABASE_URL` points to a non-production project (production is always refused by src/lib/liveGuard.ts; there is no override).
 - It only uses `TEST_SUPABASE_SERVICE_ROLE_KEY`, never the app's own `SUPABASE_SERVICE_ROLE_KEY`.
 - Routine `vitest run` never writes to any database.
 
