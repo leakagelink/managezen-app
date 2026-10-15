@@ -18,3 +18,5 @@
 - Financial integrity (base price, locked amounts, status transitions, payout ≤ available) is enforced by database triggers plus an audit_log; UI checks are convenience only.
 - Account deletion runs through `runAccountDeletion` (src/lib/accountDeletion.ts): single-flight job, login blocked first and deleted last, every step error-checked; keep its dependency plan in sync with the Privacy Policy and /delete-account text.
 - Public deletion requests go through rate-limited server functions with a hashed, 48-hour email verification link; Verified/Processing/Completed can only be set by the server workflow.
+- Every privileged status change must carry a verified admin identity (auth.uid() or the server-only svc_update_deletion_request RPC); triggers fail closed and write audit_log, so never bypass them with plain service-role updates.
+- Database-writing tests run only with LIVE_DB_TESTS=1 and should target staging (see docs/staging-and-email.md).
