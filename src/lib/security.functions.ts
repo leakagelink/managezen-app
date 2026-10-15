@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { getRequestHeader } from '@tanstack/react-start/server';
 import { trustedClientIp } from './clientIp';
 import { isRateLimited, type RpcFn } from './rateLimit';
+import { cleanProjectRequest, submitProjectRequestCore, type ProjectRequestInput } from './projectRequest';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { MAX_FILES, checkFile, safeFileName } from './uploadRules';
 import { SITE_URL } from './socilet';
@@ -185,4 +186,16 @@ export const processDeletionRequest = createServerFn({ method: 'POST' })
       await updReq(sb, data.id, context.userId, 'admin', ['Processing'], { status: 'Verified' }).catch(() => []);
       throw new Error(e instanceof Error && !e.message.startsWith('step:') ? e.message : 'Deletion failed; the request is back to Verified so you can retry.');
     }
+  });
+
+/* ---------------- Public project requests ---------------- */
+
+/** Public: rate-limited (trusted IP + email) project request from an offer link. */
+export const submitProjectRequest = createServerFn({ method: 'POST' })
+  .inputValidator((d: Partial<Record<keyof ProjectRequestInput, unknown>>) => cleanProjectRequest(d ?? {}))
+  .handler(async ({ data }) => {
+    const sb = await admin();
+    const ipHash = await sha256('rip:' + trustedClientIp((n) => getRequestHeader(n)));
+    const emailHash = await sha256('rem:' + data.email);
+    return submitProjectRequestCore(((fn, args) => (sb as unknown as { rpc: RpcFn }).rpc(fn, args)) as RpcFn, data, ipHash, emailHash);
   });
