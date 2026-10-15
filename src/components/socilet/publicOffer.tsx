@@ -1,4 +1,4 @@
-import { uploadRequestFiles } from '@/lib/security.functions';
+import { uploadRequestFiles, submitProjectRequest } from '@/lib/security.functions';
 import { checkFile, ACCEPT_ATTR } from '@/lib/uploadRules';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
@@ -94,20 +94,24 @@ function RequestForm({ code, price }: { code: string; price: number }) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) return setErr('Please enter a valid email.');
     if (f.req.trim().length < 10) return setErr('Please describe your project requirements (at least 10 characters).');
     setBusy(true);
-    const { data, error } = await supabase.rpc('submit_project_request_v2', { _offer_code: code, _name: f.name.slice(0,100), _email: f.email.trim().slice(0,255), _phone: f.phone.slice(0,20), _country: f.country, _requirements: f.req.slice(0,2000) });
-    const row = Array.isArray(data) ? data[0] : null;
-    if (error || !row) {
+    let res: Awaited<ReturnType<typeof submitProjectRequest>>;
+    try { res = await submitProjectRequest({ data: { code, name: f.name, email: f.email, phone: f.phone, country: f.country, requirements: f.req } }); }
+    catch { res = { ok: false, reason: 'unavailable' }; }
+    if (!res.ok) {
       setBusy(false);
-      const m = error?.message || '';
-      if (m.includes('Offer not available')) return setErr('This offer is not live yet. It must be approved by Socilet admin before clients can submit requests.');
-      if (m.includes('Invalid email')) return setErr('Please enter a valid email address.');
-      if (m.includes('Invalid name')) return setErr('Please enter your full name (at least 2 letters).');
-      if (m.includes('Invalid input')) return setErr('Please check your phone number and requirements length.');
-      return setErr('Could not submit right now. Please try again.');
+      const msg: Record<typeof res.reason, string> = {
+        limited: 'Too many requests from this connection or email. Please wait a while and try again, or email hello@socilet.in.',
+        offer: 'This offer is not live yet. It must be approved by Socilet admin before clients can submit requests.',
+        email: 'Please enter a valid email address.',
+        name: 'Please enter your full name (at least 2 letters).',
+        input: 'Please check your phone number and requirements length.',
+        unavailable: 'Could not submit right now. Please try again.',
+      };
+      return setErr(msg[res.reason]);
     }
-    const tracking = row.tracking_code;
+    const tracking = res.tracking;
     if (files.length) {
-      const fd = new FormData(); fd.append('tracking', tracking); fd.append('token', row.upload_token);
+      const fd = new FormData(); fd.append('tracking', tracking); fd.append('token', res.uploadToken);
       files.forEach(x => fd.append('files', x));
       try { await uploadRequestFiles({ data: fd }); } catch { setErr('Your request was saved, but files could not be uploaded. Please email them to hello@socilet.in with your tracking ID.'); }
     }
