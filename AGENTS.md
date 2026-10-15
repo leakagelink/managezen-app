@@ -20,4 +20,5 @@
 - Public deletion requests go through rate-limited server functions with a hashed, 48-hour email verification link; Verified/Processing/Completed can only be set by the server workflow.
 - Every privileged status change must carry a verified admin identity (auth.uid() or the server-only svc_update_deletion_request RPC); triggers fail closed and write audit_log, so never bypass them with plain service-role updates.
 - Database-writing tests run only with LIVE_DB_TESTS=1 and an explicit non-production TEST_SUPABASE_URL; the test file refuses the production ref because preview shares the production backend.
-- Rate limits trust only `cf-connecting-ip` (src/lib/clientIp.ts); forwarding headers are client-spoofable on Workers.
+- Rate limits trust only a validated `cf-connecting-ip` (src/lib/clientIp.ts) and consume atomically via the `consume_rate_limit` DB function (src/lib/rateLimit.ts), failing closed on any error.
+- Live DB tests target staging only via src/lib/liveGuard.ts; production is refused with no override.
