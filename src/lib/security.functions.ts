@@ -83,7 +83,7 @@ export const deleteMyAccount = createServerFn({ method: 'POST' })
 const GENERIC = 'If this email is registered, we will contact it to verify the request.';
 
 const limited = (sb: Admin, bucket: string, key: string, max: number, hours: number) =>
-  isRateLimited((fn, args) => (sb.rpc as unknown as RpcFn)(fn, args), bucket, key, max, hours);
+  isRateLimited(((fn, args) => (sb as unknown as { rpc: RpcFn }).rpc(fn, args)) as RpcFn, bucket, key, max, hours);
 
 export const requestDeletion = createServerFn({ method: 'POST' })
   .inputValidator((d: { email: string; reason?: string }) => {
