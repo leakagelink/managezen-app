@@ -23,3 +23,17 @@ The current manual flow (admin opens a ready-made email and sends it from hello@
 3. In `startDeletionVerification`, send the email from the server instead of returning the link to the browser. The token must never be returned to the browser, logged, or stored in plain text. Today only its SHA-256 hash is stored; it is single-use (cleared when verified) and expires after 48 hours.
 4. Opening the link only marks the request **Verified**. Deletion still needs an admin to press "Delete account data", which runs the deletion job and marks the request Completed only after the job succeeds.
 5. Remove the manual email button only after real emails have been delivered and verified end to end.
+
+## Production guard (enforced in code)
+- `src/lib/security.live.test.ts` has no default backend. With `LIVE_DB_TESTS=1` it refuses to run unless `TEST_SUPABASE_URL` points to a non-production project (production ref is blocked; override `ALLOW_PROD_DB_TESTS=yes-i-am-sure` exists only for an explicitly approved run).
+- It only uses `TEST_SUPABASE_SERVICE_ROLE_KEY`, never the app's own `SUPABASE_SERVICE_ROLE_KEY`.
+- Routine `vitest run` never writes to any database.
+
+## Staging status (not yet created)
+Lovable Cloud gives this project one backend that serves both preview and the published site, so the editor preview IS production data. A separate staging backend cannot be created from inside this project. Options:
+1. Remix the project in Lovable (creates a new project with its own Cloud backend, storage and secrets), re-apply the migrations from `supabase/migrations/` there, and use it as staging.
+2. Use Lovable drafts for schema changes; draft backends are isolated until accepted.
+Then set `TEST_SUPABASE_URL`, `TEST_SUPABASE_PUBLISHABLE_KEY`, `TEST_SUPABASE_SERVICE_ROLE_KEY` to the staging values when running live tests.
+
+## Client IP trust
+The app runs on Cloudflare Workers; only `cf-connecting-ip` (set by Cloudflare's edge) is trusted for rate limiting. `x-forwarded-for` is ignored. Missing header → shared `untrusted` bucket (stricter).

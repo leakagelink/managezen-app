@@ -19,4 +19,5 @@
 - Account deletion runs through `runAccountDeletion` (src/lib/accountDeletion.ts): single-flight job, login blocked first and deleted last, every step error-checked; keep its dependency plan in sync with the Privacy Policy and /delete-account text.
 - Public deletion requests go through rate-limited server functions with a hashed, 48-hour email verification link; Verified/Processing/Completed can only be set by the server workflow.
 - Every privileged status change must carry a verified admin identity (auth.uid() or the server-only svc_update_deletion_request RPC); triggers fail closed and write audit_log, so never bypass them with plain service-role updates.
-- Database-writing tests run only with LIVE_DB_TESTS=1 and should target staging (see docs/staging-and-email.md).
+- Database-writing tests run only with LIVE_DB_TESTS=1 and an explicit non-production TEST_SUPABASE_URL; the test file refuses the production ref because preview shares the production backend.
+- Rate limits trust only `cf-connecting-ip` (src/lib/clientIp.ts); forwarding headers are client-spoofable on Workers.
