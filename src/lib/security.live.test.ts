@@ -14,7 +14,7 @@ if (process.env['LIVE_DB_TESTS'] === '1' && (!URL_ || URL_.includes(PROD_REF)) &
 // Opt-in only: set LIVE_DB_TESTS=1 (point TEST_SUPABASE_URL/KEYS at staging once it exists) so routine runs never write to production.
 const SVC = process.env['LIVE_DB_TESTS'] === '1' ? process.env['TEST_SUPABASE_SERVICE_ROLE_KEY'] : undefined;
 const d = SVC ? describe : describe.skip;
-const svc = () => createClient<Database>(URL_, SVC!, { auth: { persistSession: false } });
+const svc = () => createClient<Database>(URL_ || 'http://localhost.invalid', SVC ?? 'skipped', { auth: { persistSession: false } });
 const pwd = 'Test-' + Math.random().toString(36).slice(2) + 'A1!';
 
 async function mkUser(sb: DeletionClient, tag: string) {
