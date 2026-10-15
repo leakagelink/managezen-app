@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start';
 import { getRequestHeader } from '@tanstack/react-start/server';
+import { trustedClientIp } from './clientIp';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { MAX_FILES, checkFile, safeFileName } from './uploadRules';
 import { SITE_URL } from './socilet';
@@ -97,8 +98,8 @@ export const requestDeletion = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const sb = await admin();
     await sb.rpc('purge_expired_records');
-    const ip = getRequestHeader('cf-connecting-ip') || getRequestHeader('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const ipHash = await sha256('ip:' + ip.trim());
+    const ip = trustedClientIp((n) => getRequestHeader(n));
+    const ipHash = await sha256('ip:' + ip);
     const emailHash = await sha256('em:' + data.email);
     if (await limited(sb, 'del-ip', ipHash, 5, 1) || await limited(sb, 'del-email', emailHash, 3, 24)) {
       throw new Error('Too many requests. Please try again later.');
