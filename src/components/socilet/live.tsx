@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Copy, Check, Share2, MessageCircle, Search, Loader2, Bell, Wallet, Users, Clock, CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +14,13 @@ type Notif = { id:string; title:string; body:string; read:boolean; created_at:st
 type ProjectRow = { id:string; tracking_code:string; service:string; total:number; stage:string; progress:number; customer_email:string; updated_at:string };
 
 function useRows<T>(table:'referrals'|'payout_requests'|'notifications'|'projects', enabled:boolean){
- const [rows,setRows]=useState<T[]>([]);const [loading,setLoading]=useState(true);
- const reload=useCallback(async()=>{if(!enabled){setLoading(false);return}setLoading(true);const {data}=await supabase.from(table).select('*').order('created_at',{ascending:false});setRows((data??[]) as T[]);setLoading(false)},[table,enabled]);
- useEffect(()=>{void reload()},[reload]);
- return {rows,loading,reload};
+ const {user}=useSocilet();
+ const q=useQuery({
+  queryKey:['live',table,user?.id??'anon'],
+  enabled,
+  queryFn:async()=>{const {data}=await supabase.from(table).select('*').order('created_at',{ascending:false});return (data??[]) as T[]},
+ });
+ return {rows:q.data??[],loading:q.isPending,reload:async()=>{await q.refetch()}};
 }
 const Spinner=()=><div className="grid place-items-center py-12 text-muted-foreground"><Loader2 className="animate-spin"/></div>;
 
