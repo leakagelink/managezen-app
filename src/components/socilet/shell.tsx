@@ -1,6 +1,6 @@
 import { Link, useRouterState, useNavigate } from '@tanstack/react-router';
 import { LayoutGrid, Layers, Calculator, Link2, FolderOpen, Route as RouteIcon, Wallet, UserRound, Bell, Plus, Menu, ShieldCheck, ArrowLeft, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { SociletProvider, useSocilet } from './context';
 import { canAccess, demoRoles, type Role } from '@/lib/socilet';
@@ -8,6 +8,14 @@ export function AppProvider({children}:{children:ReactNode}) {return <SociletPro
 const nav=[{to:'/',label:'Home',icon:LayoutGrid},{to:'/services',label:'Service catalogue',icon:Layers},{to:'/calculator',label:'Pricing calculator',icon:Calculator},{to:'/referrals',label:'My referrals',icon:Link2},{to:'/offers',label:'My offers',icon:FolderOpen},{to:'/track',label:'Track a project',icon:RouteIcon},{to:'/earnings',label:'Earnings & payouts',icon:Wallet},{to:'/projects',label:'My projects',icon:FolderOpen},{to:'/admin',label:'Admin panel',icon:ShieldCheck},{to:'/profile',label:'My profile',icon:UserRound}] as const;
 import logoAsset from '@/assets/socilet-affiliate-logo.png.asset.json';
 export function Brand({small=false}:{small?:boolean}) {return <Link to="/" aria-label="Socilet Affiliate home">{small?<span className="font-display text-[30px] font-extrabold text-foreground">S</span>:<img src={logoAsset.url} alt="Socilet Affiliate" className="h-10 w-auto"/>}</Link>}
+function Splash() {
+ const {ready}=useSocilet(); const [minDone,setMinDone]=useState(false); const [gone,setGone]=useState(false);
+ useEffect(()=>{const t=setTimeout(()=>setMinDone(true),900);return()=>clearTimeout(t)},[]);
+ const hide=ready&&minDone;
+ useEffect(()=>{if(hide){const t=setTimeout(()=>setGone(true),450);return()=>clearTimeout(t)}},[hide]);
+ if(gone) return null;
+ return <div aria-hidden={hide} className={`fixed inset-0 z-[100] grid place-items-center bg-[#0F172A] transition-opacity duration-500 ${hide?'pointer-events-none opacity-0':'opacity-100'}`}><img src={logoAsset.url} alt="Socilet Affiliate" className="w-56 max-w-[60vw] animate-pulse"/></div>;
+}
 export function Shell({children}:{children:ReactNode}) {
  const {role,setRole,name,signedIn}=useSocilet(); const path=useRouterState({select:s=>s.location.pathname}); const navigate=useNavigate(); const [menu,setMenu]=useState(false); const [notice,setNotice]=useState(false);
  const publicScreen=['/welcome','/login'].includes(path);const items=nav.filter(i=>canAccess(role,i.to));const home=path==='/';
