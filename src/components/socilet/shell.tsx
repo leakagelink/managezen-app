@@ -12,7 +12,7 @@ function Splash() {
  const {ready}=useSocilet(); const [minDone,setMinDone]=useState(false); const [gone,setGone]=useState(false);
  useEffect(()=>{const t=setTimeout(()=>setMinDone(true),900);return()=>clearTimeout(t)},[]);
  const hide=ready&&minDone;
- useEffect(()=>{if(hide){const t=setTimeout(()=>setGone(true),450);return()=>clearTimeout(t)}},[hide]);
+ useEffect(()=>{if(!hide) return; const t=setTimeout(()=>setGone(true),450); return()=>clearTimeout(t)},[hide]);
  if(gone) return null;
  return <div aria-hidden={hide} className={`fixed inset-0 z-[100] grid place-items-center bg-[#0F172A] transition-opacity duration-500 ${hide?'pointer-events-none opacity-0':'opacity-100'}`}><img src={logoAsset.url} alt="Socilet Affiliate" className="w-56 max-w-[60vw] animate-pulse"/></div>;
 }
