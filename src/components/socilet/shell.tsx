@@ -14,7 +14,7 @@ function Splash() {
  const hide=ready&&minDone;
  useEffect(()=>{if(!hide) return; const t=setTimeout(()=>setGone(true),450); return()=>clearTimeout(t)},[hide]);
  if(gone) return null;
- return <div aria-hidden={hide} className={`fixed inset-0 z-[100] grid place-items-center bg-[#0F172A] transition-opacity duration-500 ${hide?'pointer-events-none opacity-0':'opacity-100'}`}><img src={logoAsset.url} alt="Socilet Affiliate" className="w-56 max-w-[60vw] animate-pulse"/></div>;
+ return <div aria-hidden={hide} className={`splash-screen ${hide?'pointer-events-none opacity-0':'opacity-100'}`}><div className="grid place-items-center"><img src={logoAsset.url} alt="Socilet Affiliate" className="splash-logo"/><p className="splash-tag">Grow Together</p></div></div>;
 }
 export function Shell({children}:{children:ReactNode}) {
  const {role,setRole,name,signedIn}=useSocilet(); const path=useRouterState({select:s=>s.location.pathname}); const navigate=useNavigate(); const [menu,setMenu]=useState(false); const [notice,setNotice]=useState(false);
