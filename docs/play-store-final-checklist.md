@@ -15,7 +15,7 @@
 | Android backups | PASS (changed) | `allowBackup=false` so sign-in data isn't copied to cloud backups |
 | Signing secrets kept out of git | PASS | `*.jks`, `*.keystore`, `keystore.properties` ignored; only the `.example` file is tracked |
 | Signed AAB | BLOCKED | No Java/Android SDK here. Build on your PC |
-| Launcher icon | BLOCKED | Still Capacitor default. Replace in Android Studio (Image Asset) |
+| Launcher icon | PASS (changed) | Socilet logo icons generated for all densities + adaptive foreground, navy background |
 | Real-device test | BLOCKED | Your PC/phone |
 | Retention periods (8 y financial, 1 y deletion requests) | NOT VERIFIED | Need legal review |
 | Verification emails | Manual | Admin sends the link by hand; reply within Play's stated deletion timeframe |
